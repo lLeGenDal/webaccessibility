@@ -1,109 +1,278 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import Database from "better-sqlite3";
+import cors from "cors";
 import fetch from "node-fetch";
 import https from "https";
 
-// Create a custom agent to allow self-signed certificates or old TLS versions
-const agent = new https.Agent({
+const app = express();
+const PORT = 3000;
+
+// Create an agent that ignores SSL certificate errors
+const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
-  keepAlive: true,
-  family: 4,
-  minVersion: 'TLSv1', // Support older governmental sites
-  maxVersion: 'TLSv1.3'
 });
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+// Initialize SQLite database
+const db = new Database("data.db");
 
-  app.use(express.json());
+// ... (rest of table creation)
 
-  // API Route: Proxy for fetching external site HTML
-  app.get("/api/proxy", async (req, res) => {
-    const rawUrl = (req.query.url as string || '').trim();
-    if (!rawUrl) return res.status(400).json({ error: "URL is required" });
+// Create tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sites (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    category TEXT NOT NULL,
+    region TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    ownerId TEXT NOT NULL,
+    lastItaIndex REAL,
+    lastInternalScore INTEGER
+  );
 
-    const tryFetch = async (targetUrl: string): Promise<{ ok: boolean; status?: number; statusText?: string; html?: string; error?: any }> => {
-      const userAgents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0'
-      ];
-      const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+  CREATE TABLE IF NOT EXISTS audits (
+    id TEXT PRIMARY KEY,
+    siteId TEXT NOT NULL,
+    date TEXT NOT NULL,
+    internalScore INTEGER NOT NULL,
+    axeScore INTEGER NOT NULL,
+    aiScore INTEGER NOT NULL,
+    lighthouseScore INTEGER NOT NULL,
+    contrastScore INTEGER NOT NULL,
+    itaIndex REAL NOT NULL,
+    maturityLevel TEXT NOT NULL,
+    pourScores TEXT NOT NULL, -- JSON
+    manualReviewCompleted INTEGER NOT NULL, -- 0 or 1
+    region TEXT NOT NULL,
+    wcagBreakdown TEXT NOT NULL, -- JSON
+    aiInsights TEXT, -- JSON
+    summary TEXT NOT NULL,
+    wcagVersion TEXT NOT NULL,
+    ownerId TEXT NOT NULL,
+    FOREIGN KEY(siteId) REFERENCES sites(id) ON DELETE CASCADE
+  );
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      try {
-        const response = await fetch(targetUrl, {
-          headers: {
-            'User-Agent': randomUA,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,kk-KZ;q=0.6',
-            'Cache-Control': 'max-age=0',
-            'Referer': 'https://www.google.com/',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'cross-site',
-            'Sec-Fetch-User': '?1',
-            'DNT': '1'
-          },
-          agent,
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-        if (!response.ok) return { ok: false, status: response.status, statusText: response.statusText };
-        const html = await response.text();
-        return { ok: true, html };
-      } catch (error) {
-        clearTimeout(timeout);
-        return { ok: false, error };
+  CREATE TABLE IF NOT EXISTS issues (
+    id TEXT PRIMARY KEY,
+    auditId TEXT NOT NULL,
+    criterion TEXT NOT NULL,
+    wcagLevel TEXT NOT NULL,
+    principle TEXT,
+    severity TEXT NOT NULL,
+    description TEXT NOT NULL,
+    recommendation TEXT NOT NULL,
+    element TEXT,
+    engine TEXT NOT NULL,
+    status TEXT NOT NULL,
+    source TEXT NOT NULL,
+    comment TEXT,
+    helpUrl TEXT,
+    FOREIGN KEY(auditId) REFERENCES audits(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS user_profiles (
+    uid TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    displayName TEXT NOT NULL,
+    role TEXT NOT NULL
+  );
+`);
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/api/proxy", async (req, res) => {
+  try {
+    const targetUrl = req.query.url as string;
+    if (!targetUrl) return res.status(400).json({ error: "Missing URL parameter" });
+
+    const response = await fetch(targetUrl, {
+      agent: targetUrl.startsWith("https") ? httpsAgent : undefined,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
       }
-    };
+    });
 
-    // Prepare variants to try
-    let cleanUrl = rawUrl.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-    const variants = [
-      rawUrl.trim(),
-      `https://${cleanUrl}`,
-      `http://${cleanUrl}`,
-      `https://www.${cleanUrl.replace(/^www\./, '')}`,
-      `http://www.${cleanUrl.replace(/^www\./, '')}`
-    ];
-    
-    // Remove duplicates
-    const uniqueVariants = [...new Set(variants)];
-
-    console.log(`Starting proxy attempts for: ${rawUrl}`);
-    
-    for (const variant of uniqueVariants) {
-      console.log(`Trying variant: ${variant}`);
-      const result = await tryFetch(variant);
-      
-      if (result.ok) {
-        return res.send(result.html);
-      }
-      
-      // Small pause before next variant
-      await new Promise(r => setTimeout(r, 800));
-      
-      // If result is not ok but we have a status (e.g. 403, 404), maybe we shouldn't retry? 
-      // Actually, keep trying other variants unless it's a 404 on a specific variant.
-      if (result.status === 404 || result.status === 403) {
-        console.log(`Variant ${variant} returned ${result.status}`);
-      }
+    if (!response.ok) {
+      return res.status(response.status).json({ error: `Target responded with ${response.status}` });
     }
 
-    // If all failed, report the last error or a generic one
-    res.status(500).json({ 
-      error: "Сайт заблокировал автоматический запрос.",
-      details: "Системы ИБ казахстанских госорганов часто блокируют роботов. Пожалуйста, используйте ручной ввод HTML-кода для анализа."
+    const html = await response.text();
+    res.send(html);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// API Routes
+app.get("/api/sites", (req, res) => {
+  try {
+    const ownerId = req.headers["x-user-id"] as string;
+    const sites = db.prepare("SELECT * FROM sites").all();
+    res.json(sites);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.post("/api/sites", (req, res) => {
+  try {
+    const site = req.body;
+    const stmt = db.prepare(`
+      INSERT INTO sites (id, name, url, category, region, createdAt, ownerId, lastItaIndex, lastInternalScore)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name=excluded.name,
+        url=excluded.url,
+        category=excluded.category,
+        region=excluded.region,
+        lastItaIndex=excluded.lastItaIndex,
+        lastInternalScore=excluded.lastInternalScore
+    `);
+    stmt.run(site.id, site.name, site.url, site.category, site.region, site.createdAt, site.ownerId, site.lastItaIndex || null, site.lastInternalScore || null);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.delete("/api/sites/:id", (req, res) => {
+  try {
+    db.prepare("DELETE FROM sites WHERE id = ?").run(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.get("/api/audits", (req, res) => {
+  try {
+    const audits = db.prepare("SELECT * FROM audits ORDER BY date DESC").all();
+    const formatted = audits.map((a: any) => ({
+      ...a,
+      manualReviewCompleted: !!a.manualReviewCompleted,
+      pourScores: JSON.parse(a.pourScores),
+      wcagBreakdown: JSON.parse(a.wcagBreakdown),
+      aiInsights: a.aiInsights ? JSON.parse(a.aiInsights) : undefined
+    }));
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.get("/api/audits/:id", (req, res) => {
+  try {
+    const audit = db.prepare("SELECT * FROM audits WHERE id = ?").get(req.params.id) as any;
+    if (!audit) return res.status(404).json({ error: "Audit not found" });
+    
+    res.json({
+      ...audit,
+      manualReviewCompleted: !!audit.manualReviewCompleted,
+      pourScores: JSON.parse(audit.pourScores),
+      wcagBreakdown: JSON.parse(audit.wcagBreakdown),
+      aiInsights: audit.aiInsights ? JSON.parse(audit.aiInsights) : undefined
     });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.post("/api/audits", (req, res) => {
+  try {
+    const { id, siteId, date, internalScore, axeScore, aiScore, lighthouseScore, contrastScore, itaIndex, maturityLevel, pourScores, manualReviewCompleted, region, wcagBreakdown, aiInsights, summary, wcagVersion, ownerId } = req.body;
+    
+    const stmt = db.prepare(`
+      INSERT INTO audits (
+        id, siteId, date, internalScore, axeScore, aiScore, lighthouseScore, contrastScore, 
+        itaIndex, maturityLevel, pourScores, manualReviewCompleted, region, 
+        wcagBreakdown, aiInsights, summary, wcagVersion, ownerId
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        manualReviewCompleted=excluded.manualReviewCompleted,
+        itaIndex=excluded.itaIndex,
+        maturityLevel=excluded.maturityLevel,
+        pourScores=excluded.pourScores,
+        wcagBreakdown=excluded.wcagBreakdown,
+        aiInsights=excluded.aiInsights,
+        summary=excluded.summary
+    `);
+    
+    stmt.run(
+      id, siteId, date, internalScore, axeScore, aiScore, lighthouseScore, contrastScore,
+      itaIndex, maturityLevel, JSON.stringify(pourScores), manualReviewCompleted ? 1 : 0, region,
+      JSON.stringify(wcagBreakdown), JSON.stringify(aiInsights), summary, wcagVersion, ownerId
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error("API Error [POST /api/audits]:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.get("/api/issues/:auditId", (req, res) => {
+  try {
+    const issues = db.prepare("SELECT * FROM issues WHERE auditId = ?").all(req.params.auditId);
+    res.json(issues);
+  } catch (error) {
+    console.error("API Error [GET /api/issues]:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.post("/api/issues/batch", (req, res) => {
+  const transaction = db.transaction((issues: any[]) => {
+    const stmt = db.prepare(`
+      INSERT INTO issues (id, auditId, criterion, wcagLevel, principle, severity, description, recommendation, element, engine, status, source, comment, helpUrl)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        status=excluded.status,
+        comment=excluded.comment
+    `);
+    for (const issue of issues) {
+      stmt.run(
+        issue.id, 
+        issue.auditId, 
+        issue.criterion || "Unknown", 
+        issue.wcagLevel || "A", 
+        issue.principle || "Universal", 
+        issue.severity || "Medium", 
+        issue.description || "No description provided", 
+        issue.recommendation || "No recommendation provided", 
+        issue.element || null, 
+        issue.engine || "Manual", 
+        issue.status || "Pending", 
+        issue.source || "Unknown", 
+        issue.comment || null, 
+        issue.helpUrl || null
+      );
+    }
   });
 
-  // Vite middleware for development
+  try {
+    transaction(req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("API Error [POST /api/issues/batch]:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.delete("/api/audits/:id", (req, res) => {
+  try {
+    db.prepare("DELETE FROM audits WHERE id = ?").run(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Vite Middleware
+async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -111,15 +280,15 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot, deleteDoc, doc, getDocs } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../firebase";
 import { useAuth } from "../App";
 import { Audit, Site } from "../types";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Trash2, ExternalLink, Calendar, BarChart3, ShieldCheck, AlertCircle, Loader2, Search, ArrowLeft } from "lucide-react";
+import { Trash2, ExternalLink, Calendar, BarChart3, AlertCircle, Loader2, Search, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { apiService } from "../services/apiService";
 
 export default function AuditList() {
   const { user } = useAuth();
@@ -24,51 +23,47 @@ export default function AuditList() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch Sites first to map names
-    const fetchSites = async () => {
-      const q = query(collection(db, "sites"));
-      const snap = await getDocs(q);
-      setSites(snap.docs.map(d => ({ id: d.id, ...d.data() } as Site)));
-    };
-    fetchSites();
-
-    let q = query(collection(db, "audits"));
-    if (siteIdFilter) {
-      q = query(collection(db, "audits"), where("siteId", "==", siteIdFilter));
-    }
-    
-    const unsub = onSnapshot(q, (snap) => {
-      const allAudits = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Audit));
-      
-      // Group by siteId and take the latest one
-      const uniqueAuditsMap = new Map<string, Audit>();
-      allAudits.forEach(audit => {
-        const existing = uniqueAuditsMap.get(audit.siteId);
-        if (!existing || new Date(audit.date).getTime() > new Date(existing.date).getTime()) {
-          uniqueAuditsMap.set(audit.siteId, audit);
+    const loadData = async () => {
+      try {
+        if (!user) return;
+        const [sitesData, auditsData] = await Promise.all([
+          apiService.getSites(user.uid),
+          apiService.getAudits()
+        ]);
+        setSites(sitesData);
+        
+        let filtered = auditsData;
+        if (siteIdFilter) {
+          filtered = auditsData.filter(a => a.siteId === siteIdFilter);
         }
-      });
 
-      setAudits(Array.from(uniqueAuditsMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "audits");
-      setLoading(false);
-    });
+        const uniqueAuditsMap = new Map<string, Audit>();
+        filtered.forEach(audit => {
+          const existing = uniqueAuditsMap.get(audit.siteId);
+          if (!existing || new Date(audit.date).getTime() > new Date(existing.date).getTime()) {
+            uniqueAuditsMap.set(audit.siteId, audit);
+          }
+        });
 
-    return unsub;
+        const finalAudits = Array.from(uniqueAuditsMap.values()).filter((audit, index, self) => 
+          index === self.findIndex((t) => t.id === audit.id)
+        );
+
+        setAudits(finalAudits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      } catch (error) {
+        console.error("Error loading audits:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, [user, siteIdFilter]);
 
   const handleDeleteAudit = async (id: string) => {
     try {
-      // 1. Delete associated issues
-      const issuesQ = query(collection(db, "issues"), where("auditId", "==", id));
-      const issuesSnap = await getDocs(issuesQ);
-      const deletePromises = issuesSnap.docs.map(d => deleteDoc(doc(db, "issues", d.id)));
-      await Promise.all(deletePromises);
-
-      // 2. Delete the audit itself
-      await deleteDoc(doc(db, "audits", id));
+      await apiService.deleteAudit(id);
+      const updatedAudits = await apiService.getAudits();
+      setAudits(updatedAudits.filter(a => siteIdFilter ? a.siteId === siteIdFilter : true));
       setDeletingId(null);
     } catch (error) {
       console.error("Error deleting audit:", error);
@@ -142,11 +137,11 @@ export default function AuditList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <AnimatePresence>
-            {filteredAudits.map((audit) => {
+            {filteredAudits.map((audit, index) => {
               const site = sites.find(s => s.id === audit.siteId);
               return (
                 <motion.div
-                  key={audit.id}
+                  key={`${audit.id}-${index}`}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

@@ -88,7 +88,7 @@ export interface Issue {
   description: string;
   recommendation: string;
   element?: string;
-  engine: "Internal" | "Axe" | "AI" | "Manual";
+  engine: "Internal" | "Axe" | "AI" | "Manual" | "Lighthouse";
   status: "Pending" | "Confirmed" | "Rejected";
   source: string;
   comment?: string;

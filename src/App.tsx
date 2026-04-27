@@ -20,9 +20,10 @@ import ManualReview from "./components/ManualReview";
 
 import AuditList from "./components/AuditList";
 import Methodology from "./components/Methodology";
+import { migrateFromFirebase } from "./services/migrationService";
 
 // Auth Context
-export const MOCK_AUTH = true; // Set to false to enable real Firebase Auth
+export const MOCK_AUTH = false; // Set to false to enable real Firebase Auth
 
 interface AuthContextType {
   user: User | null | any;
@@ -231,6 +232,12 @@ const Sidebar = () => {
 
 const MainContent = () => {
   const { user, loading, login } = useAuth();
+
+  useEffect(() => {
+    if (user && !loading) {
+      migrateFromFirebase(user.uid);
+    }
+  }, [user, loading]);
 
   if (loading) {
     return (

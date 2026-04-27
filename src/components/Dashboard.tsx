@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot, orderBy, limit, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
 import { useAuth } from "../App";
 import { Site, Audit } from "../types";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Legend,
+  Cell, PieChart, Pie, Legend,
   AreaChart, Area
 } from "recharts";
 import { Globe, ClipboardCheck, AlertTriangle, CheckCircle2, TrendingUp, Users, School, Building2, Trophy, ArrowUpRight, Layers, Activity, BarChart3, Calculator, ShieldCheck, BrainCircuit, Landmark, Eye, Sparkles } from "lucide-react";
@@ -13,6 +11,7 @@ import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 import { Link } from "react-router-dom";
 import KazakhstanMap from "./KazakhstanMap";
+import { apiService } from "../services/apiService";
 
 const inferRegion = (name: string): string => {
   const n = name.toLocaleLowerCase();
@@ -69,6 +68,47 @@ const RadialMetric = ({ name, value, color }: any) => (
   </div>
 );
 
+import { useMigrationStatus, updateMigrationStatus } from "../services/migrationTracking";
+
+const MigrationBanner = ({ userId }: { userId: string }) => {
+  const { status, error } = useMigrationStatus();
+
+  if (status === 'idle' || status === 'completed') return null;
+
+  return (
+    <motion.div 
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: 'auto', opacity: 1 }}
+      className={cn(
+        "mb-8 p-4 rounded-2xl border flex items-center justify-between",
+        status === 'running' ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        {status === 'running' ? (
+          <div className="w-5 h-5 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        ) : (
+          <AlertTriangle className="w-5 h-5" />
+        )}
+        <span className="text-sm font-bold">
+          {status === 'running' ? "Переносим ваши данные из Firebase в новую систему..." : error || "Ошибка миграции данных"}
+        </span>
+      </div>
+      {status === 'error' && (
+        <button 
+          onClick={() => {
+            localStorage.removeItem("qazaq_access_migrated_v2");
+            window.location.reload();
+          }}
+          className="px-4 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors"
+        >
+          Повторить попытку
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
 export default function Dashboard() {
   const { user, profile } = useAuth();
   const [sites, setSites] = useState<Site[]>([]);
@@ -76,27 +116,40 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sitesQuery = query(collection(db, "sites"));
-    const auditsQuery = query(collection(db, "audits"), orderBy("date", "desc"));
+    const loadData = async () => {
+      try {
+        if (!user) return;
+        const [sitesData, auditsData] = await Promise.all([
+          apiService.getSites(user.uid),
+          apiService.getAudits()
+        ]);
+        setSites(sitesData);
 
-    const unsubSites = onSnapshot(sitesQuery, (snap) => {
-      setSites(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site)));
-    });
+        const uniqueAuditsMap = new Map<string, Audit>();
+        auditsData.forEach(audit => {
+          const existing = uniqueAuditsMap.get(audit.siteId);
+          if (!existing || new Date(audit.date).getTime() > new Date(existing.date).getTime()) {
+            uniqueAuditsMap.set(audit.siteId, audit);
+          }
+        });
+        
+        // Final safety check for duplicate audit primary IDs
+        const finalAudits = Array.from(uniqueAuditsMap.values()).filter((audit, index, self) => 
+          index === self.findIndex((t) => t.id === audit.id)
+        );
+        setAudits(finalAudits);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const unsubAudits = onSnapshot(auditsQuery, (snap) => {
-      const allAudits = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Audit));
-      const uniqueAuditsMap = new Map<string, Audit>();
-      allAudits.forEach(audit => {
-        const existing = uniqueAuditsMap.get(audit.siteId);
-        if (!existing || new Date(audit.date).getTime() > new Date(existing.date).getTime()) {
-          uniqueAuditsMap.set(audit.siteId, audit);
-        }
-      });
-      setAudits(Array.from(uniqueAuditsMap.values()));
-      setLoading(false);
-    });
-
-    return () => { unsubSites(); unsubAudits(); };
+    loadData();
+    
+    // Refresh every minute
+    const interval = setInterval(loadData, 60000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const avgIta = audits.length > 0 
@@ -144,6 +197,8 @@ export default function Dashboard() {
           </Link>
         </div>
       </header>
+
+      {user && <MigrationBanner userId={user.uid} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Metric Cards Row */}
@@ -264,7 +319,7 @@ export default function Dashboard() {
            
            <div className="space-y-8">
               {topSites.map((audit, i) => (
-                <div key={audit.id} className="group relative">
+                <div key={`${audit.id}-${i}`} className="group relative">
                   <div className="flex items-center gap-4 mb-3">
                     <div className="w-12 h-12 rounded-2xl bg-[#161B31] border border-[#2D3558] flex items-center justify-center text-white p-2 overflow-hidden shadow-lg shadow-black/20">
                        <Landmark className={cn("w-6 h-6", i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : "text-amber-600")} />

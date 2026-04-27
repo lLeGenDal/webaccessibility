@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../firebase";
 import { useAuth } from "../App";
 import { Site, KZRegion } from "../types";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +6,7 @@ import { Plus, Globe, Trash2, ExternalLink, Building2, GraduationCap, Search, Lo
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { suggestOfficialUrl, suggestOrgRegion, suggestOfficialName, suggestOrgCategory } from "../services/geminiAuditService";
+import { apiService } from "../services/apiService";
 
 import { KAZAKHSTAN_REGIONS } from "../constants";
 
@@ -25,43 +24,43 @@ export default function SiteList() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "sites"));
-    const unsub = onSnapshot(q, (snap) => {
-      setSites(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site)));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "sites");
-    });
-    return unsub;
-  }, []);
+    const loadSites = async () => {
+      try {
+        if (!user) return;
+        const data = await apiService.getSites(user.uid);
+        setSites(data);
+      } catch (error) {
+        console.error("Error loading sites:", error);
+      }
+    };
+    loadSites();
+  }, [user]);
 
   const handleAddSite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     
-    // Simple heuristic: if URL is missing, suggest one or keep empty
     let urlToSave = newSite.url.trim();
-    if (!urlToSave && newSite.name) {
-      // Just a placeholder for "adding by name"
-      // In a real app we might use a search API here
-      urlToSave = ""; 
-    }
-
     setIsAddingManually(true);
     setManualAddError(null);
     
     try {
-      await addDoc(collection(db, "sites"), {
+      const siteId = Math.random().toString(36).substring(2, 15);
+      await apiService.saveSite({
+        id: siteId,
         ...newSite,
         url: urlToSave,
         ownerId: user.uid,
         createdAt: new Date().toISOString()
-      });
+      } as Site);
+      
+      const updated = await apiService.getSites(user.uid);
+      setSites(updated);
       setShowAddModal(false);
       setNewSite({ name: "", url: "", category: "University", region: "" as KZRegion });
     } catch (error) {
       console.error("Error adding site:", error);
       setManualAddError("Ошибка при сохранении сайта в базу данных.");
-      handleFirestoreError(error, OperationType.CREATE, "sites");
     } finally {
       setIsAddingManually(false);
     }
@@ -69,19 +68,15 @@ export default function SiteList() {
 
   const handleUpdateSite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingSite) return;
+    if (!editingSite || !user) return;
     
     setIsAddingManually(true);
     setManualAddError(null);
     
     try {
-      const { updateDoc: firestoreUpdateDoc, doc: firestoreDocRef } = await import("firebase/firestore");
-      await firestoreUpdateDoc(firestoreDocRef(db, "sites", editingSite.id), {
-        name: editingSite.name,
-        url: editingSite.url,
-        category: editingSite.category,
-        region: editingSite.region
-      });
+      await apiService.saveSite(editingSite);
+      const updated = await apiService.getSites(user.uid);
+      setSites(updated);
       setEditingSite(null);
     } catch (error) {
       console.error("Error updating site:", error);
@@ -92,8 +87,11 @@ export default function SiteList() {
   };
 
   const handleDeleteSite = async (id: string) => {
+    if (!user) return;
     try {
-      await deleteDoc(doc(db, "sites", id));
+      await apiService.deleteSite(id);
+      const updated = await apiService.getSites(user.uid);
+      setSites(updated);
       setDeletingId(null);
     } catch (error) {
       console.error("Error deleting site:", error);

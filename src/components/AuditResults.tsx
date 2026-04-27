@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
-import { db } from "../firebase";
 import { Audit, Issue, Site } from "../types";
 import { 
   ChevronLeft, AlertCircle, AlertTriangle, Info, CheckCircle2, 
-  Download, Share2, ExternalLink, ShieldCheck, Zap, BarChart3, 
-  Search, Layout, GitCompare, Activity, Trash2, Calculator, 
-  Waves, Landmark, BadgeCheck, Eye, BrainCircuit, Sparkles 
+  Trash2, ExternalLink, ShieldCheck, Zap, 
+  Search, Layout, Activity, Landmark, Eye, BrainCircuit, Sparkles, Calculator 
 } from "lucide-react";
 import { motion } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
+import { apiService } from "../services/apiService";
 
 export default function AuditResults() {
   const { id } = useParams();
@@ -25,19 +23,21 @@ export default function AuditResults() {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const auditSnap = await getDoc(doc(db, "audits", id));
-        if (auditSnap.exists()) {
-          const auditData = { id: auditSnap.id, ...auditSnap.data() } as Audit;
+        const auditData = await apiService.getAuditById(id);
+        if (auditData) {
           setAudit(auditData);
           
-          const siteSnap = await getDoc(doc(db, "sites", auditData.siteId));
-          if (siteSnap.exists()) {
-            setSite({ id: siteSnap.id, ...siteSnap.data() } as Site);
+          const sites = await apiService.getSites(""); // OwnerId is handled by backend or not strictly filtered here
+          const foundSite = sites.find(s => s.id === auditData.siteId);
+          if (foundSite) {
+            setSite(foundSite);
           }
 
-          const issuesQuery = query(collection(db, "issues"), where("auditId", "==", id));
-          const issuesSnap = await getDocs(issuesQuery);
-          setIssues(issuesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Issue)));
+          const issuesData = await apiService.getIssues(id);
+          const cleanIssues = issuesData.filter((issue, index, self) => 
+            index === self.findIndex((t) => t.id === issue.id)
+          );
+          setIssues(cleanIssues);
         }
       } catch (error) {
         console.error("Error fetching audit results:", error);
@@ -52,10 +52,7 @@ export default function AuditResults() {
 
   const handleDelete = async () => {
     try {
-      const issuesQ = query(collection(db, "issues"), where("auditId", "==", id));
-      const issuesSnap = await getDocs(issuesQ);
-      await Promise.all(issuesSnap.docs.map(d => deleteDoc(doc(db, "issues", d.id))));
-      await deleteDoc(doc(db, "audits", id!));
+      await apiService.deleteAudit(id!);
       navigate("/audits");
     } catch (error) {
       console.error("Error deleting audit:", error);
@@ -199,20 +196,28 @@ export default function AuditResults() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
         {[
-          { label: "Internal Core", value: audit.internalScore, color: "text-indigo-400" },
-          { label: "Axe Technical", value: audit.axeScore, color: "text-indigo-400" },
-          { label: "Lighthouse Web", value: audit.lighthouseScore || 0, color: "text-amber-400" },
-          { label: "Contrast Pulse", value: audit.contrastScore || 0, color: "text-emerald-400" },
-          { label: "Neural Semantic", value: audit.aiScore, color: "text-indigo-400" }
+          { label: "Internal Core", value: audit.internalScore, color: "text-indigo-400", info: "Комплексная техническая оценка на основе внутренних алгоритмов сканирования." },
+          { label: "Axe Technical", value: audit.axeScore, color: "text-indigo-400", info: "Оценка на базе индустриального стандарта Axe Core (верификация структуры)." },
+          { label: "Lighthouse Web", value: audit.lighthouseScore || 0, color: "text-amber-400", info: "Симуляция баллов Google Lighthouse Accessibility для базовой проверки." },
+          { label: "Contrast Pulse", value: audit.contrastScore || 0, color: "text-emerald-400", info: "Индекс контрастности. Опирается на критерии WCAG 1.4.3 и 1.4.6 (текст/фон)." },
+          { label: "Neural Semantic", value: audit.aiScore, color: "text-indigo-400", info: "Оценка семантики от Gemini AI. Анализирует смысл подписей и логику контента." }
         ].map((item, i) => (
           <motion.div 
             key={item.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 border-[#2D3558] hover:border-indigo-500/30 transition-all group"
+            className="glass-card p-6 border-[#2D3558] hover:border-indigo-500/30 transition-all group relative"
           >
-            <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-4 group-hover:text-indigo-400 transition-colors">{item.label}</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] group-hover:text-indigo-400 transition-colors">{item.label}</p>
+              <div className="relative group/info">
+                <Info className="w-3.5 h-3.5 text-[#2D3558] group-hover:text-indigo-400 cursor-help transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#1F2641] border border-[#2D3558] rounded-xl text-[10px] font-medium text-[#A6AFC9] opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                  {item.info}
+                </div>
+              </div>
+            </div>
             <div className={cn("text-4xl font-black transition-all group-hover:scale-110 origin-left", item.color)}>
               {item.value}
               <span className="text-xs opacity-30 ml-1 font-bold">/100</span>
@@ -379,7 +384,7 @@ export default function AuditResults() {
             
             {issues.map((issue, idx) => (
               <motion.div 
-                key={issue.id}
+                key={`${issue.id}-${idx}`}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}

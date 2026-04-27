@@ -25,47 +25,42 @@ export function calculateInternalAssessment(issues: Issue[]): InternalScoreResul
   const countAAA = confirmed.filter(i => i.wcagLevel === "AAA").length;
 
   // 1. Internal System Score (0-100)
-  // Logic: A issues are critical (-12 each), AA (-6), AAA (-2)
-  let internalScore = 100 - (countA * 12) - (countAA * 6) - (countAAA * 2);
-  internalScore = Math.max(0, internalScore);
+  // Balanced weights: A issues (-5 each), AA (-2), AAA (-0.5)
+  let internalScore = 100 - (countA * 5) - (countAA * 2) - (countAAA * 0.5);
+  internalScore = Math.max(0, Math.round(internalScore));
 
   // 2. Lighthouse Score Simulation (using Axe data primarily)
-  // Lighthouse is often more lenient than our Internal score for complex WCAG 2.2 patterns
-  let lighthouseScore = 100 - (countA * 8) - (countAA * 4) - (countAAA * 1);
-  lighthouseScore = Math.max(0, lighthouseScore);
+  let lighthouseScore = 100 - (countA * 4) - (countAA * 2) - (countAAA * 0.5);
+  lighthouseScore = Math.max(0, Math.round(lighthouseScore));
 
   // 3. Contrast Score
-  // Calculated specifically from issues related to 1.4.3 and 1.4.6 or AI findings
   const contrastIssues = confirmed.filter(i => 
     i.criterion === "1.4.3" || i.criterion === "1.4.6" || i.description.toLowerCase().includes("контраст")
   );
-  let contrastScore = 100 - (contrastIssues.length * 20);
+  let contrastScore = 100 - (contrastIssues.length * 10);
   contrastScore = Math.max(0, contrastScore);
 
   // 4. ITA Index (1-5)
   // ITA focuses on fundamental accessibility. 5.0 is perfect.
-  // 5.0: No A or AA issues.
-  // 4.0: Only AA/AAA issues.
-  // 1.0: many A issues.
   let itaIndex = 5.0;
-  itaIndex -= (countA * 0.5);
-  itaIndex -= (countAA * 0.2);
-  itaIndex -= (countAAA * 0.05);
+  itaIndex -= (countA * 0.2);
+  itaIndex -= (countAA * 0.1);
+  itaIndex -= (countAAA * 0.02);
   itaIndex = Math.max(1.0, Math.round(itaIndex * 10) / 10);
 
   // 3. Maturity Level
   let maturityLevel: MaturityLevel = "Inactive";
   if (itaIndex >= 4.5 && countA === 0) maturityLevel = "Optimized";
-  else if (itaIndex >= 3.5) maturityLevel = "Integrated";
-  else if (itaIndex >= 2.5) maturityLevel = "Defined";
-  else if (itaIndex >= 1.5) maturityLevel = "Initial";
+  else if (itaIndex >= 3.8) maturityLevel = "Integrated";
+  else if (itaIndex >= 2.8) maturityLevel = "Defined";
+  else if (itaIndex >= 1.8) maturityLevel = "Initial";
   else maturityLevel = "Inactive";
 
   // 4. POUR Scores
   const calcPrinciple = (p: keyof POURScores) => {
-    const pIssues = confirmed.filter(i => i.principle === p);
-    // Increase sensitivity: A = -25%, AA = -15%, AAA = -5%
-    const pPenalty = pIssues.reduce((acc, i) => acc + (i.wcagLevel === "A" ? 25 : i.wcagLevel === "AA" ? 15 : 5), 0);
+    const pIssues = confirmed.filter(i => i.principle?.toLowerCase() === p.toLowerCase());
+    // Balanced sensitivity: A = -8%, AA = -4%, AAA = -1%
+    const pPenalty = pIssues.reduce((acc, i) => acc + (i.wcagLevel === "A" ? 8 : i.wcagLevel === "AA" ? 4 : 1), 0);
     return Math.max(0, 100 - pPenalty);
   };
 

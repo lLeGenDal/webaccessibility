@@ -46,11 +46,16 @@ export async function runAISemanticAudit(
     TASKS:
     1. Score 'semanticAltQuality' (0-100): Are alt texts descriptive or generic like "image1", "logo"?
     2. Score 'labelClarity' (0-100): Do labels clearly describe input purpose?
-    3. Score 'navigationLogic' (0-100): Based on technical issues, how logical is the flow?
+    3. Score 'navigationLogic' (0-100): Based on technical issues, how logical is the flow (Operable principle)?
     4. Provide 'aiScore' (Weighted average of the above).
     5. Generate 'recommendations' in Kazakh and Russian for fixing semantic (meaning) issues.
-    6. Generate a list of 'issues' (Partial<Issue>[]) for specific semantic or contrast problems found.
-       For contrast issues, look for potentially problematic color pairs mentioned in labels or CSS-like text.
+    6. Generate a list of 'issues' (Partial<Issue>[]) for specific semantic, contrast, or complex logic problems found.
+       Focus on:
+       - Perceivable: Meaningfulness of text alternatives.
+       - Operable: Keyboard logic, focus indicators, navigation consistency (based on semantic structure).
+       - Understandable: Error message clarity, input instructions, language usage.
+       - Robust: Compatibility patterns, suspicious use of ARIA without clear semantic foundation.
+       
        Each issue MUST have: description, criterion (WCAG string), wcagLevel (A/AA/AAA), severity (Critical/High/Medium/Low), recommendation, engine ("AI" or "Contrast").
     
     Return JSON format.

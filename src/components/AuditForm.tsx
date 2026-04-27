@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, addDoc, doc, updateDoc } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../firebase";
 import { useAuth } from "../App";
-import { Site, Issue, Audit, MaturityLevel, WCAGLevel } from "../types";
+import { Site, Issue, Audit } from "../types";
 import { useNavigate } from "react-router-dom";
 import { runAxeAudit } from "../services/axeService";
 import { runCustomScanner } from "../services/customScanner";
@@ -10,9 +8,10 @@ import { runAISemanticAudit } from "../services/geminiAuditService";
 import { calculateInternalAssessment, getWCAGMetadata } from "../services/scoringService";
 import { 
   ClipboardCheck, Search, Loader2, AlertCircle, ShieldCheck, Zap, 
-  BarChart3, Sparkles, BrainCircuit, Globe 
+  Globe, Sparkles, BrainCircuit 
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { apiService } from "../services/apiService";
 
 export default function AuditForm() {
   const { user } = useAuth();
@@ -36,15 +35,15 @@ export default function AuditForm() {
   useEffect(() => {
     const fetchSites = async () => {
       try {
-        const q = query(collection(db, "sites"));
-        const snap = await getDocs(q);
-        setSites(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site)));
+        if (!user) return;
+        const data = await apiService.getSites(user.uid);
+        setSites(data);
       } catch (err) {
-        handleFirestoreError(err, OperationType.LIST, "sites");
+        console.error("Error fetching sites:", err);
       }
     };
     fetchSites();
-  }, []);
+  }, [user]);
 
   const handleStartAudit = async (providedHtml?: string) => {
     if (!selectedSiteId || !user) return;
@@ -94,77 +93,97 @@ export default function AuditForm() {
         ...internalResults.issues.map(i => ({ ...i, status: "Confirmed", auditId: "temp", engine: "Internal" as const } as Issue))
       ];
 
-      // 4. Internal Engine Calculation (WCAG A/AA/AAA focus)
-      setAuditStep("Scoring Engine: Calculating Compliance Index...");
-      const internalAssessment = calculateInternalAssessment(rawIssues);
-
-      // 5. Engine 3: Gemini AI (Semantic & Alt-Text Audit)
+      // 4. Engine 3: Gemini AI (Semantic & Alt-Text Audit)
       setAuditStep("Neural Process: AI Semantic Pattern Recognition...");
       const aiAnalysis = await runAISemanticAudit(site.url, html, rawIssues);
 
-      // 6. Final Issues Aggregation
-      const finalIssues: any[] = [
+      // 6. Deduplicate & Final Issues Aggregation
+      setAuditStep("Final Assessment: Synthesizing Intelligent Compliance Reports...");
+      
+      const allIssues: Issue[] = [
         ...rawIssues,
-        ...aiAnalysis.issues.map(i => ({ ...i, status: "Confirmed", auditId: "temp" }))
+        ...aiAnalysis.issues.map(i => ({ 
+          ...i, 
+          status: "Confirmed", 
+          auditId: "temp",
+          principle: i.criterion ? getWCAGMetadata(i.criterion).principle : "perceivable"
+        } as Issue))
       ];
+
+      // Deduplicate by criterion + element text (ignoring slight variations in description)
+      const uniqueIssuesMap = new Map<string, Issue>();
+      allIssues.forEach(issue => {
+          const key = `${issue.criterion}-${issue.element?.substring(0, 50) || issue.description.substring(0, 50)}`;
+          if (!uniqueIssuesMap.has(key)) {
+              uniqueIssuesMap.set(key, issue);
+          }
+      });
+      const finalIssues = Array.from(uniqueIssuesMap.values());
 
       if (axeResults.issues.length > 0) {
         finalIssues.push({
-          criterion: axeResults.issues[0].criterion,
-          wcagLevel: axeResults.issues[0].wcagLevel,
-          principle: axeResults.issues[0].principle,
-          severity: axeResults.issues[0].severity,
+          id: Math.random().toString(36).substring(2, 15),
+          criterion: axeResults.issues[0].criterion || "1.1.1",
+          wcagLevel: axeResults.issues[0].wcagLevel || "A",
+          principle: axeResults.issues[0].principle || "perceivable",
+          severity: axeResults.issues[0].severity || "High",
           description: `[Lighthouse Probe] ${axeResults.issues[0].description}`,
           recommendation: "Cross-platform verification recommended via Google Lighthouse diagnostic tools.",
           engine: "Lighthouse",
           status: "Confirmed",
-          auditId: "temp"
-        });
+          auditId: "temp",
+          source: "Lighthouse simulator"
+        } as Issue);
       }
+
+      const finalAssessment = calculateInternalAssessment(finalIssues);
 
       // 7. Save to Database
       setAuditStep("Finalizing Report: Encrypting Strategic Intelligence...");
-      const auditData: Partial<Audit> = {
+      const auditId = Math.random().toString(36).substring(2, 15);
+      const auditData: Audit = {
+        id: auditId,
         siteId: site.id,
         date: new Date().toISOString(),
-        internalScore: internalAssessment.internalScore,
+        internalScore: finalAssessment.internalScore,
         axeScore: axeResults.score,
         aiScore: aiAnalysis.aiScore,
-        lighthouseScore: internalAssessment.lighthouseScore,
-        contrastScore: internalAssessment.contrastScore,
-        itaIndex: internalAssessment.itaIndex,
-        maturityLevel: internalAssessment.maturityLevel,
+        lighthouseScore: finalAssessment.lighthouseScore,
+        contrastScore: finalAssessment.contrastScore,
+        itaIndex: finalAssessment.itaIndex,
+        maturityLevel: finalAssessment.maturityLevel,
         manualReviewCompleted: false,
         region: site.region,
-        wcagBreakdown: internalAssessment.wcagBreakdown,
+        wcagBreakdown: finalAssessment.wcagBreakdown,
         aiInsights: {
           semanticAltQuality: aiAnalysis.semanticAltQuality,
           labelClarity: aiAnalysis.labelClarity,
           navigationLogic: aiAnalysis.navigationLogic,
           recommendations: aiAnalysis.recommendations
         },
-        summary: aiAnalysis.summary + "\n\n" + internalAssessment.summary,
+        summary: aiAnalysis.summary + "\n\n" + finalAssessment.summary,
         wcagVersion: "2.2",
-        pourScores: internalAssessment.pourScores,
+        pourScores: finalAssessment.pourScores,
         ownerId: user.uid
       };
 
-      const auditDoc = await addDoc(collection(db, "audits"), auditData);
+      await apiService.saveAudit(auditData);
 
-      for (const issue of finalIssues) {
-        await addDoc(collection(db, "issues"), {
-          ...issue,
-          auditId: auditDoc.id
-        });
-      }
+      const issuesToSave = finalIssues.map(issue => ({
+        ...issue,
+        id: issue.id || Math.random().toString(36).substring(2, 15),
+        auditId: auditId
+      }));
+      await apiService.saveIssues(issuesToSave);
 
-      await updateDoc(doc(db, "sites", site.id), {
-        lastInternalScore: internalAssessment.internalScore,
-        lastItaIndex: internalAssessment.itaIndex,
-        lastAuditDate: new Date().toISOString()
+      // Update site last scores
+      await apiService.saveSite({
+        ...site,
+        lastInternalScore: finalAssessment.internalScore,
+        lastItaIndex: finalAssessment.itaIndex,
       });
 
-      navigate(`/audit/${auditDoc.id}`);
+      navigate(`/audit/${auditId}`);
     } catch (err: any) {
       console.error("Audit failed:", err);
       const isNetworkError = err.message.includes("bypass") || err.message.includes("shielding") || err.message.includes("unreachable") || err.message.includes("endpoint");
