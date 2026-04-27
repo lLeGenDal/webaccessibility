@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "Site": {
+      "title": "Site",
+      "description": "Organization website to be audited",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the university or company" },
+        "url": { "type": "string", "format": "uri", "description": "Website URL" },
+        "category": { "type": "string", "enum": ["University", "Company"] },
+        "region": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" },
+        "lastAuditScore": { "type": "number" },
+        "lastItaIndex": { "type": "number" }
+      },
+      "required": ["name", "url", "category", "ownerId"]
+    },
+    "Audit": {
+      "title": "Audit",
+      "description": "Accessibility audit results",
+      "type": "object",
+      "properties": {
+        "siteId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "score": { "type": "number", "description": "0-100 technical score" },
+        "itaIndex": { "type": "number", "description": "1-5 ITA score" },
+        "maturityLevel": { "type": "string", "enum": ["Inactive", "Initial", "Defined", "Integrated", "Optimized"] },
+        "manualReviewCompleted": { "type": "boolean" },
+        "pourScores": {
+          "type": "object",
+          "properties": {
+            "perceivable": { "type": "number" },
+            "operable": { "type": "number" },
+            "understandable": { "type": "number" },
+            "robust": { "type": "number" }
+          }
+        },
+        "engineScores": { "type": "object" },
+        "wcagBreakdown": { "type": "object" },
+        "summary": { "type": "string" },
+        "wcagVersion": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["siteId", "date", "itaIndex", "ownerId"]
+    },
+    "Issue": {
+      "title": "Issue",
+      "description": "Specific accessibility violation",
+      "type": "object",
+      "properties": {
+        "auditId": { "type": "string" },
+        "criterion": { "type": "string" },
+        "priority": { "type": "number", "enum": [1, 2, 3] },
+        "principle": { "type": "string", "enum": ["perceivable", "operable", "understandable", "robust"] },
+        "severity": { "type": "string", "enum": ["Low", "Medium", "High", "Critical"] },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "engine": { "type": "string", "enum": ["Auto", "Manual"] },
+        "status": { "type": "string", "enum": ["Pending", "Confirmed", "Rejected"] },
+        "source": { "type": "string", "enum": ["AChecker", "Mauve", "Cynthia", "AccessMonitor", "Manual"] }
+      },
+      "required": ["auditId", "criterion", "priority", "principle", "status"]
+    }
+  },
+  "firestore": {
+    "/sites": { "schema": "Site", "description": "Registered organizations" },
+    "/audits": { "schema": "Audit", "description": "Audit history" },
+    "/issues": { "schema": "Issue", "description": "Audit violations" }
+  }
+}
