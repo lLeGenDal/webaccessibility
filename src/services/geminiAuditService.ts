@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Issue } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyA6efsEJV1PwjkImXgVpAaV0n4vu4y67qE";
+const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
 export interface AIAnalysisResult {
   aiScore: number;
