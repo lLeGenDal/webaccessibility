@@ -73,6 +73,7 @@ export interface Audit {
     };
   };
   
+  strategicReview?: string;
   summary: string;
   wcagVersion: "2.2";
   ownerId: string;

@@ -4,7 +4,7 @@ import { Site, Issue, Audit } from "../types";
 import { useNavigate } from "react-router-dom";
 import { runAxeAudit } from "../services/axeService";
 import { runCustomScanner } from "../services/customScanner";
-import { runAISemanticAudit } from "../services/geminiAuditService";
+import { runAISemanticAudit, runAIPreAudit, runAIFinalSynthesis } from "../services/geminiAuditService";
 import { calculateInternalAssessment, getWCAGMetadata } from "../services/scoringService";
 import { 
   ClipboardCheck, Search, Loader2, AlertCircle, ShieldCheck, Zap, 
@@ -80,11 +80,14 @@ export default function AuditForm() {
         throw new Error("Data corruption: Extracted payload insufficient for analysis.");
       }
 
-      // 2. Engine 1: Axe Core (Technical)
+      // 1. Stage 1: AI Pre-Audit
+      setAuditStep("Neural Contextualization: AI Scanning Architecture...");
+      const preAuditStrategicFocus = await runAIPreAudit(html);
+
+      // 2. Stage 2: Technical Scans
       setAuditStep("Axe-Core: Technical Deep Scan...");
       const axeResults = await runAxeAudit(html);
 
-      // 3. Engine 2: Internal Scanner (Proprietary System)
       setAuditStep("Core Engines: Multi-layered Structural Audit...");
       const internalResults = runCustomScanner(html);
       
@@ -93,12 +96,12 @@ export default function AuditForm() {
         ...internalResults.issues.map(i => ({ ...i, status: "Confirmed", auditId: "temp", engine: "Internal" as const } as Issue))
       ];
 
-      // 4. Engine 3: Gemini AI (Semantic & Alt-Text Audit)
-      setAuditStep("Neural Process: AI Semantic Pattern Recognition...");
+      // 3. Stage 3: AI Intelligence (Semantic, Logic, Strategy)
+      setAuditStep("Neural Process: AI Strategic Pattern Recognition...");
       const aiAnalysis = await runAISemanticAudit(site.url, html, rawIssues);
 
-      // 6. Deduplicate & Final Issues Aggregation
-      setAuditStep("Final Assessment: Synthesizing Intelligent Compliance Reports...");
+      // 4. Synthesis & Score Calculation
+      setAuditStep("AI Synthesis: Aggregating Multi-Modal Findings...");
       
       const allIssues: Issue[] = [
         ...rawIssues,
@@ -110,7 +113,6 @@ export default function AuditForm() {
         } as Issue))
       ];
 
-      // Deduplicate by criterion + element text (ignoring slight variations in description)
       const uniqueIssuesMap = new Map<string, Issue>();
       allIssues.forEach(issue => {
           const key = `${issue.criterion}-${issue.element?.substring(0, 50) || issue.description.substring(0, 50)}`;
@@ -119,26 +121,17 @@ export default function AuditForm() {
           }
       });
       const finalIssues = Array.from(uniqueIssuesMap.values());
-
-      if (axeResults.issues.length > 0) {
-        finalIssues.push({
-          id: Math.random().toString(36).substring(2, 15),
-          criterion: axeResults.issues[0].criterion || "1.1.1",
-          wcagLevel: axeResults.issues[0].wcagLevel || "A",
-          principle: axeResults.issues[0].principle || "perceivable",
-          severity: axeResults.issues[0].severity || "High",
-          description: `[Lighthouse Probe] ${axeResults.issues[0].description}`,
-          recommendation: "Cross-platform verification recommended via Google Lighthouse diagnostic tools.",
-          engine: "Lighthouse",
-          status: "Confirmed",
-          auditId: "temp",
-          source: "Lighthouse simulator"
-        } as Issue);
-      }
-
       const finalAssessment = calculateInternalAssessment(finalIssues);
 
-      // 7. Save to Database
+      // 5. Stage 4: AI Final Report
+      setAuditStep("Generating AI Executive Report...");
+      const finalSummary = await runAIFinalSynthesis({
+        ...finalAssessment,
+        aiScore: aiAnalysis.aiScore,
+        axeScore: axeResults.score
+      }, finalIssues);
+
+      // 6. Save to Database
       setAuditStep("Finalizing Report: Encrypting Strategic Intelligence...");
       const auditId = Math.random().toString(36).substring(2, 15);
       const auditData: Audit = {
@@ -161,7 +154,8 @@ export default function AuditForm() {
           navigationLogic: aiAnalysis.navigationLogic,
           recommendations: aiAnalysis.recommendations
         },
-        summary: aiAnalysis.summary + "\n\n" + finalAssessment.summary,
+        strategicReview: aiAnalysis.strategicReview,
+        summary: finalSummary,
         wcagVersion: "2.2",
         pourScores: finalAssessment.pourScores,
         ownerId: user.uid

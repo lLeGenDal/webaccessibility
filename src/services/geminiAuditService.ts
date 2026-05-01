@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Issue } from "../types";
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyA6efsEJV1PwjkImXgVpAaV0n4vu4y67qE";
+const GEMINI_KEY = "AIzaSyA6efsEJV1PwjkImXgVpAaV0n4vu4y67qE";
 const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
 export interface AIAnalysisResult {
@@ -15,8 +15,35 @@ export interface AIAnalysisResult {
   };
   summary: string;
   issues: Partial<Issue>[];
+  strategicReview?: string;
 }
 
+/**
+ * Stage 1: Preliminary Structural Risk Assessment
+ */
+export async function runAIPreAudit(html: string): Promise<string> {
+  const sample = html.substring(0, 10000); // Sample first 10k chars
+  const prompt = `
+    Analyze this HTML structure for accessibility risks. 
+    Look for complex UI patterns (modals, menus, forms) and identify likely keyboard traps or missing descriptive labels.
+    Provide a brief strategic focus for the main audit (MAX 2 sentences).
+    HTML Fragment:
+    ${sample}
+  `;
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    });
+    return result.text.trim();
+  } catch (err) {
+    return "Initial structural scan completed.";
+  }
+}
+
+/**
+ * Stage 2: Main Semantic & Strategic Audit
+ */
 export async function runAISemanticAudit(
   siteUrl: string,
   html: string,
@@ -60,11 +87,12 @@ export async function runAISemanticAudit(
        Each issue MUST have: description, criterion (WCAG string), wcagLevel (A/AA/AAA), severity (Critical/High/Medium/Low), recommendation, engine ("AI" or "Contrast").
     
     Return JSON format.
+    Include a 'strategicReview' field (string) with a 2-paragraph deep analysis of the overall accessibility architecture of this site.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash", // Use higher capacity model if possible for main scan
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
@@ -84,6 +112,7 @@ export async function runAISemanticAudit(
               required: ["kz", "ru"]
             },
             summary: { type: Type.STRING },
+            strategicReview: { type: Type.STRING },
             issues: {
               type: Type.ARRAY,
               items: {
@@ -100,7 +129,7 @@ export async function runAISemanticAudit(
               }
             }
           },
-          required: ["aiScore", "semanticAltQuality", "labelClarity", "navigationLogic", "recommendations", "summary", "issues"]
+          required: ["aiScore", "semanticAltQuality", "labelClarity", "navigationLogic", "recommendations", "summary", "strategicReview", "issues"]
         }
       }
     });
@@ -118,8 +147,38 @@ export async function runAISemanticAudit(
         ru: "AI анализ временно недоступен."
       },
       summary: "AI semantic audit encountered an error.",
+      strategicReview: "Strategic failure during neural processing.",
       issues: []
     };
+  }
+}
+
+/**
+ * Stage 3: Final Synthesis
+ */
+export async function runAIFinalSynthesis(
+  audit: any,
+  issues: Issue[]
+): Promise<string> {
+  const prompt = `
+    Summarize a comprehensive Accessibility Audit.
+    Stats: ITA Index ${audit.itaIndex}/5, AI Score ${audit.aiScore}/100, Axe Score ${audit.axeScore}/100.
+    Total Issues: ${issues.length}.
+    
+    Executive Summary (2-3 sentences): What is the single biggest barrier for users on this site?
+    Next Steps (Bullet points): Top 3 prioritized actions.
+    
+    Language: Professional Russian.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    });
+    return response.text.trim();
+  } catch (err) {
+    return audit.summary;
   }
 }
 

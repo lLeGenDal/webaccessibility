@@ -307,11 +307,18 @@ export default function AuditResults() {
 
           <section className="glass-card p-8 border-[#2D3558]">
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-[#22293F]">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Strategic Synthesis</h2>
+              <h2 className="text-2xl font-bold text-white tracking-tight italic">Neural Strategic Synthesis</h2>
               <span className="px-3 py-1 bg-[#161B31] text-[#707AA1] text-[10px] font-black uppercase tracking-widest rounded border border-[#2D3558]">
-                Standard: WCAG 2.2 Functional
+                Intelligence Layer: Active
               </span>
             </div>
+            
+            {audit.strategicReview && (
+              <div className="mb-10 p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 italic text-indigo-200/90 leading-relaxed font-serif text-lg">
+                <ReactMarkdown>{audit.strategicReview}</ReactMarkdown>
+              </div>
+            )}
+
             <div className="prose prose-invert prose-indigo max-w-none text-[#A6AFC9] leading-relaxed mb-10 overflow-hidden">
               <ReactMarkdown>{audit.summary}</ReactMarkdown>
             </div>
