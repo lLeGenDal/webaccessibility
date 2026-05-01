@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { suggestOfficialUrl, suggestOrgRegion, suggestOfficialName, suggestOrgCategory } from "../services/geminiAuditService";
 import { apiService } from "../services/apiService";
+import { useMigrationStatus } from "../services/migrationTracking";
 
 import { KAZAKHSTAN_REGIONS } from "../constants";
 
@@ -15,6 +16,7 @@ export default function SiteList() {
   const navigate = useNavigate();
   const [sites, setSites] = useState<Site[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [newSite, setNewSite] = useState({ name: "", url: "", category: "University" as const, region: "" as KZRegion });
@@ -23,18 +25,24 @@ export default function SiteList() {
   const [manualAddError, setManualAddError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { status: migrationStatus } = useMigrationStatus();
+
   useEffect(() => {
     const loadSites = async () => {
       try {
+        setLoading(true);
         if (!user) return;
         const data = await apiService.getSites(user.uid);
-        setSites(data);
+        const filtered = data.filter(s => s.ownerId === user.uid);
+        setSites(filtered);
       } catch (error) {
         console.error("Error loading sites:", error);
+      } finally {
+        setLoading(false);
       }
     };
     loadSites();
-  }, [user]);
+  }, [user, migrationStatus]);
 
   const handleAddSite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,8 +182,29 @@ export default function SiteList() {
     s.url.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) return (
+    <div className="min-h-[400px] flex flex-col items-center justify-center gap-6">
+      <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">Syncing System</p>
+    </div>
+  );
+
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
+      {migrationStatus === 'running' && (
+        <div className="glass-card p-6 border-indigo-500/30 bg-indigo-500/5 flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Activity className="w-6 h-6 text-white animate-bounce" />
+            </div>
+            <div>
+              <p className="text-white font-bold">Migration in Progress</p>
+              <p className="text-[#707AA1] text-xs">Moving your sites and audits to the new faster engine...</p>
+            </div>
+          </div>
+          <div className="text-indigo-400 font-mono text-sm font-bold">PLEASE WAIT</div>
+        </div>
+      )}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-8 border-b border-[#22293F]">
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Organizations</h1>

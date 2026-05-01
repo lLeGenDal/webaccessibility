@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import Database from "better-sqlite3";
 import cors from "cors";
-import fetch from "node-fetch";
 import https from "https";
 
 const app = express();
@@ -17,7 +16,8 @@ const httpsAgent = new https.Agent({
 // Initialize SQLite database
 const db = new Database("data.db");
 
-// ... (rest of table creation)
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
 
 // Create tables
 db.exec(`
@@ -84,13 +84,23 @@ db.exec(`
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/proxy", async (req, res) => {
+const apiRouter = express.Router();
+
+apiRouter.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.path}`);
+  next();
+});
+
+apiRouter.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+apiRouter.get("/proxy", async (req, res) => {
   try {
     const targetUrl = req.query.url as string;
     if (!targetUrl) return res.status(400).json({ error: "Missing URL parameter" });
 
     const response = await fetch(targetUrl, {
-      agent: targetUrl.startsWith("https") ? httpsAgent : undefined,
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
       }
@@ -107,20 +117,26 @@ app.get("/api/proxy", async (req, res) => {
   }
 });
 
-// API Routes
-app.get("/api/sites", (req, res) => {
+apiRouter.get("/sites", (req, res) => {
   try {
     const ownerId = req.headers["x-user-id"] as string;
-    const sites = db.prepare("SELECT * FROM sites").all();
+    let sites;
+    if (ownerId) {
+      sites = db.prepare("SELECT * FROM sites WHERE ownerId = ?").all(ownerId);
+    } else {
+      sites = db.prepare("SELECT * FROM sites").all();
+    }
     res.json(sites);
   } catch (error) {
+    console.error("API Error [GET /sites]:", error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-app.post("/api/sites", (req, res) => {
+apiRouter.post("/sites", (req, res) => {
   try {
     const site = req.body;
+    console.log(`[API] Saving site: ${site.id} (${site.name}) for owner: ${site.ownerId}`);
     const stmt = db.prepare(`
       INSERT INTO sites (id, name, url, category, region, createdAt, ownerId, lastItaIndex, lastInternalScore)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -135,11 +151,12 @@ app.post("/api/sites", (req, res) => {
     stmt.run(site.id, site.name, site.url, site.category, site.region, site.createdAt, site.ownerId, site.lastItaIndex || null, site.lastInternalScore || null);
     res.json({ success: true });
   } catch (error) {
+    console.error(`[API] Error saving site ${req.body?.id}:`, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-app.delete("/api/sites/:id", (req, res) => {
+apiRouter.delete("/sites/:id", (req, res) => {
   try {
     db.prepare("DELETE FROM sites WHERE id = ?").run(req.params.id);
     res.json({ success: true });
@@ -148,7 +165,7 @@ app.delete("/api/sites/:id", (req, res) => {
   }
 });
 
-app.get("/api/audits", (req, res) => {
+apiRouter.get("/audits", (req, res) => {
   try {
     const audits = db.prepare("SELECT * FROM audits ORDER BY date DESC").all();
     const formatted = audits.map((a: any) => ({
@@ -164,7 +181,7 @@ app.get("/api/audits", (req, res) => {
   }
 });
 
-app.get("/api/audits/:id", (req, res) => {
+apiRouter.get("/audits/:id", (req, res) => {
   try {
     const audit = db.prepare("SELECT * FROM audits WHERE id = ?").get(req.params.id) as any;
     if (!audit) return res.status(404).json({ error: "Audit not found" });
@@ -181,10 +198,12 @@ app.get("/api/audits/:id", (req, res) => {
   }
 });
 
-app.post("/api/audits", (req, res) => {
+apiRouter.post("/audits", (req, res) => {
   try {
     const { id, siteId, date, internalScore, axeScore, aiScore, lighthouseScore, contrastScore, itaIndex, maturityLevel, pourScores, manualReviewCompleted, region, wcagBreakdown, aiInsights, summary, wcagVersion, ownerId } = req.body;
     
+    console.log(`[API] Saving audit: ${id} for site: ${siteId}, owner: ${ownerId}`);
+
     const stmt = db.prepare(`
       INSERT INTO audits (
         id, siteId, date, internalScore, axeScore, aiScore, lighthouseScore, contrastScore, 
@@ -209,22 +228,22 @@ app.post("/api/audits", (req, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("API Error [POST /api/audits]:", error);
+    console.error(`[API] Error saving audit ${req.body?.id}:`, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-app.get("/api/issues/:auditId", (req, res) => {
+apiRouter.get("/issues/:auditId", (req, res) => {
   try {
     const issues = db.prepare("SELECT * FROM issues WHERE auditId = ?").all(req.params.auditId);
     res.json(issues);
   } catch (error) {
-    console.error("API Error [GET /api/issues]:", error);
+    console.error("API Error [GET /issues]:", error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-app.post("/api/issues/batch", (req, res) => {
+apiRouter.post("/issues/batch", (req, res) => {
   const transaction = db.transaction((issues: any[]) => {
     const stmt = db.prepare(`
       INSERT INTO issues (id, auditId, criterion, wcagLevel, principle, severity, description, recommendation, element, engine, status, source, comment, helpUrl)
@@ -257,12 +276,12 @@ app.post("/api/issues/batch", (req, res) => {
     transaction(req.body);
     res.json({ success: true });
   } catch (error) {
-    console.error("API Error [POST /api/issues/batch]:", error);
+    console.error("API Error [POST /issues/batch]:", error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-app.delete("/api/audits/:id", (req, res) => {
+apiRouter.delete("/audits/:id", (req, res) => {
   try {
     db.prepare("DELETE FROM audits WHERE id = ?").run(req.params.id);
     res.json({ success: true });
@@ -271,25 +290,37 @@ app.delete("/api/audits/:id", (req, res) => {
   }
 });
 
+// Final fallback for /api requests that weren't matched
+apiRouter.use((req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.path}` });
+});
+
+app.use("/api", apiRouter);
+
 // Vite Middleware
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  try {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
 }
 
 startServer();

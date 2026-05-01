@@ -1,4 +1,4 @@
-import { collection, getDocs, query, getDocsFromServer, where } from "firebase/firestore";
+import { collection, getDocs, query, getDocsFromServer, where, limit } from "firebase/firestore";
 import { db } from "../firebase";
 import { apiService } from "./apiService";
 import { Site, Audit, Issue } from "../types";
@@ -29,7 +29,15 @@ export const migrateFromFirebase = async (userId: string) => {
     console.log(`Fetching sites from Firebase for user ${userId}...`);
     let sitesSnap;
     try {
-      sitesSnap = await getDocs(query(collection(db, "sites"), where("ownerId", "==", userId)));
+      // Try to fetch from server to bypass cache if it's empty
+      sitesSnap = await getDocsFromServer(query(collection(db, "sites"), where("ownerId", "==", userId)));
+      
+      if (sitesSnap.empty) {
+        console.log("No sites found with ownerId filter, checking if user has ANY access...");
+        // Fallback: try fetching all sites (permissive rules)
+        const allSitesSnap = await getDocsFromServer(query(collection(db, "sites"), limit(50)));
+        console.log(`Found ${allSitesSnap.size} total sites in system. Checking ownership...`);
+      }
     } catch (err: any) {
       console.error("Firebase Read Error (Sites):", err);
       // Fallback: try fetching all if ownerId filter fails (for old data)
@@ -45,26 +53,27 @@ export const migrateFromFirebase = async (userId: string) => {
       }
     }
     
-    // Filter sites if we fetched all
+    // Filter sites
     let sites = sitesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Site));
+    // If we didn't filter by ownerId in the query, do it here
     if (sitesSnap.query.toString().indexOf("ownerId") === -1) {
        sites = sites.filter(s => s.ownerId === userId);
     }
-    console.log(`Found ${sites.length} sites in Firebase.`);
+    console.log(`Found ${sites.length} sites in Firebase for migration.`);
     
     for (const site of sites) {
-      await apiService.saveSite(site);
+      await apiService.saveSite({ ...site, ownerId: userId }); // Enforce ownerId
     }
 
     // 2. Migrate Audits
     console.log("Fetching audits from Firebase...");
     let auditsSnap;
     try {
-      auditsSnap = await getDocs(query(collection(db, "audits"), where("ownerId", "==", userId)));
+      auditsSnap = await getDocsFromServer(query(collection(db, "audits"), where("ownerId", "==", userId)));
     } catch (err) {
       console.warn("Could not fetch filtered audits from Firebase, trying all.");
       try {
-        auditsSnap = await getDocs(query(collection(db, "audits")));
+        auditsSnap = await getDocsFromServer(query(collection(db, "audits")));
       } catch (innerErr) {
         console.error("Firebase Read Error (Audits):", innerErr);
         updateMigrationStatus('error', "Не удалось загрузить отчеты об аудитах.");
@@ -73,27 +82,30 @@ export const migrateFromFirebase = async (userId: string) => {
     }
 
     let allAudits = auditsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Audit));
-    // Filter audits if we fetched all
+    // Filter audits
     if (auditsSnap.query.toString().indexOf("ownerId") === -1) {
        allAudits = allAudits.filter(a => a.ownerId === userId);
     }
     console.log(`Found ${allAudits.length} audits in Firebase.`);
     
-    // Create a set of existing site IDs
+    // Create a set of existing site IDs (we only migrate audits for sites we just migrated or that user owns)
     const existingSiteIds = new Set(sites.map(s => s.id));
-    const validAudits = allAudits.filter(a => existingSiteIds.has(a.siteId));
+    const validAudits = allAudits.filter(a => existingSiteIds.has(a.siteId) || a.ownerId === userId);
     
-    console.log(`Migrating ${validAudits.length} valid audits (skipped ${allAudits.length - validAudits.length} orphans)...`);
+    console.log(`Migrating ${validAudits.length} valid audits...`);
 
     for (const audit of validAudits) {
-      await apiService.saveAudit(audit);
+      await apiService.saveAudit({ ...audit, ownerId: userId }); // Enforce ownerId
     }
 
     // 3. Migrate Issues
     console.log("Fetching issues from Firebase...");
     let issuesSnap;
     try {
-      issuesSnap = await getDocs(query(collection(db, "issues")));
+      // Issues are many, try to fetch only for relevant audits if possible
+      // But firestore doesn't support IN with too many items. 
+      // Fetching all might be heavy but most people don't have millions.
+      issuesSnap = await getDocsFromServer(query(collection(db, "issues")));
     } catch (err) {
       console.warn("Could not fetch issues from Firebase, skipping issues migration.");
     }
@@ -101,13 +113,11 @@ export const migrateFromFirebase = async (userId: string) => {
     if (issuesSnap) {
       const issues = issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue));
       
-      // Create a set of existing audit IDs
       const existingAuditIds = new Set(validAudits.map(a => a.id));
       const validIssues = issues.filter(issue => existingAuditIds.has(issue.auditId));
       
-      console.log(`Migrating ${validIssues.length} valid issues (skipped ${issues.length - validIssues.length} orphans)...`);
+      console.log(`Migrating ${validIssues.length} valid issues...`);
 
-      // Save issues in chunks to avoid overwhelming the server
       const chunkSize = 100;
       for (let i = 0; i < validIssues.length; i += chunkSize) {
         const chunk = validIssues.slice(i, i + chunkSize).map(issue => {
@@ -124,7 +134,6 @@ export const migrateFromFirebase = async (userId: string) => {
         
         try {
           await apiService.saveIssues(chunk as Issue[]);
-          console.log(`Migrated issues chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(validIssues.length / chunkSize)}`);
         } catch (err) {
           console.error(`Failed to migrate issues chunk at index ${i}:`, err);
         }
@@ -135,7 +144,7 @@ export const migrateFromFirebase = async (userId: string) => {
     updateMigrationStatus('completed');
     console.log("Migration v2 completed successfully.");
   } catch (error: any) {
-    console.error("Migration failed during main process:", error);
+    console.error("Migration failed:", error);
     updateMigrationStatus('error', error.message || "Unknown migration error");
   }
 };
