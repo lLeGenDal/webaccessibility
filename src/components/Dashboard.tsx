@@ -12,7 +12,6 @@ import { cn } from "../lib/utils";
 import { Link } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import KazakhstanMap from "./KazakhstanMap";
-import { useMigrationStatus, updateMigrationStatus } from "../services/migrationTracking";
 
 const inferRegion = (name: string): string => {
   const n = name.toLocaleLowerCase();
@@ -70,48 +69,8 @@ const RadialMetric = ({ name, value, color }: any) => (
 );
 
 
-const MigrationBanner = ({ userId }: { userId: string }) => {
-  const { status, error } = useMigrationStatus();
-
-  if (status === 'idle' || status === 'completed') return null;
-
-  return (
-    <motion.div 
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      className={cn(
-        "mb-8 p-4 rounded-2xl border flex items-center justify-between",
-        status === 'running' ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        {status === 'running' ? (
-          <div className="w-5 h-5 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        ) : (
-          <AlertTriangle className="w-5 h-5" />
-        )}
-        <span className="text-sm font-bold">
-          {status === 'running' ? "Переносим ваши данные из Firebase в новую систему..." : error || "Ошибка миграции данных"}
-        </span>
-      </div>
-      {status === 'error' && (
-        <button 
-          onClick={() => {
-            localStorage.removeItem("qazaq_access_migrated_v2");
-            window.location.reload();
-          }}
-          className="px-4 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors"
-        >
-          Повторить попытку
-        </button>
-      )}
-    </motion.div>
-  );
-};
-
 export default function Dashboard() {
   const { user, profile } = useAuth();
-  const { status: migrationStatus, error: migrationError } = useMigrationStatus();
   const [sites, setSites] = useState<Site[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,16 +84,16 @@ export default function Dashboard() {
         return;
       }
       const [sitesData, auditsData] = await Promise.all([
-        apiService.getSites(user.uid),
+        apiService.getSites(user.id),
         apiService.getAudits()
       ]);
       
-      const userSites = sitesData.filter(s => s.ownerId === user.uid);
+      const userSites = sitesData.filter(s => s.ownerId === user.id);
       setSites(userSites);
 
       const uniqueAuditsMap = new Map<string, Audit>();
       // Filter audits that belong to user's sites or belong directly to user
-      const userAudits = auditsData.filter(a => a.ownerId === user.uid);
+      const userAudits = auditsData.filter(a => a.ownerId === user.id);
       
       userAudits.forEach(audit => {
         const existing = uniqueAuditsMap.get(audit.siteId);
@@ -161,13 +120,7 @@ export default function Dashboard() {
     // Refresh every minute
     const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
-  }, [user, migrationStatus]);
-
-  // Handle re-triggering migration if things look empty
-  const handleForceMigration = () => {
-    localStorage.removeItem("qazaq_access_migrated_v2");
-    window.location.reload();
-  };
+  }, [user]);
 
   const avgIta = audits.length > 0 
     ? (audits.reduce((acc, curr) => acc + (curr.itaIndex || 0), 0) / audits.length).toFixed(1) 
@@ -203,57 +156,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
-      {migrationStatus === 'running' && (
-        <motion.div 
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          className="bg-indigo-600/20 border border-indigo-500/30 rounded-3xl p-6 flex items-center justify-between mb-8 overflow-hidden relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent animate-pulse" />
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Activity className="w-6 h-6 text-white animate-bounce" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-white mb-1">Deep Cloud Sync in Progress</p>
-              <p className="text-indigo-300 text-sm font-medium">Reconstructing your audits and organizations into the high-speed local engine.</p>
-            </div>
-          </div>
-          <div className="w-48 h-1.5 bg-[#161B31] rounded-full overflow-hidden relative z-10 ring-1 ring-white/10">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {migrationStatus === 'error' && (
-        <motion.div 
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          className="bg-rose-500/20 border border-rose-500/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 mb-8"
-        >
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/30">
-              <AlertTriangle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-white mb-1">Synchronization Interrupted</p>
-              <p className="text-rose-300 text-sm font-medium">{migrationError || "We hit a snag while moving your data. Your data is safe in the cloud."}</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleForceMigration}
-            className="w-full md:w-auto px-8 py-4 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-500 transition-all shadow-lg shadow-rose-500/20 active:scale-95"
-          >
-            Force Re-Sync
-          </button>
-        </motion.div>
-      )}
-
-      {sites.length === 0 && migrationStatus !== 'running' && (
+      {sites.length === 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -262,10 +165,9 @@ export default function Dashboard() {
           <div className="w-24 h-24 bg-[#161B31] rounded-3xl flex items-center justify-center mx-auto mb-8 border border-[#2D3558]">
             <Globe className="w-10 h-10 text-[#4F5A85]" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4">No Data Detected</h2>
+          <h2 className="text-3xl font-black text-white mb-4">No Organizations Found</h2>
           <p className="text-[#707AA1] max-w-md mx-auto mb-10 text-lg font-medium">
-            Your organizations and previous audits are currently invisible. 
-            This usually happens after a system update or if the local database was cleared.
+            Start by adding your first organization to perform accessibility audits.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
@@ -274,12 +176,6 @@ export default function Dashboard() {
             >
               Add New Organization
             </Link>
-            <button 
-              onClick={handleForceMigration}
-              className="px-10 py-5 bg-[#232A42] text-[#A6AFC9] rounded-2xl font-bold hover:bg-[#2D3558] hover:text-white transition-all border border-[#2D3558] active:scale-95"
-            >
-              Recover from Cloud
-            </button>
           </div>
         </motion.div>
       )}
@@ -289,11 +185,6 @@ export default function Dashboard() {
           <header className="flex items-end justify-between border-b border-[#22293F] pb-8">
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {profile?.displayName?.split(' ')[0]}</h1>
-          <nav className="flex gap-8 mt-6">
-            <button className="text-sm font-bold text-white border-b-2 border-indigo-500 pb-2">Overview</button>
-            <button className="text-sm font-bold text-[#707AA1] border-b-2 border-transparent pb-2 hover:text-[#A6AFC9]">Reputation</button>
-            <button className="text-sm font-bold text-[#707AA1] border-b-2 border-transparent pb-2 hover:text-[#A6AFC9]">Strategic Audit</button>
-          </nav>
         </div>
         <div className="flex gap-4">
           <Link to="/audit/new" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)] flex items-center gap-3 active:scale-95">
@@ -302,8 +193,6 @@ export default function Dashboard() {
           </Link>
         </div>
       </header>
-
-      {user && <MigrationBanner userId={user.uid} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Metric Cards Row */}

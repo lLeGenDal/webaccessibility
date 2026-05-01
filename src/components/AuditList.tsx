@@ -8,7 +8,6 @@ import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { apiService } from "../services/apiService";
-import { useMigrationStatus } from "../services/migrationTracking";
 import { Activity } from "lucide-react";
 
 export default function AuditList() {
@@ -24,22 +23,20 @@ export default function AuditList() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { status: migrationStatus } = useMigrationStatus();
-
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         if (!user) return;
         const [sitesData, auditsData] = await Promise.all([
-          apiService.getSites(user.uid),
+          apiService.getSites(user.id),
           apiService.getAudits()
         ]);
         
-        const userSites = sitesData.filter(s => s.ownerId === user.uid);
+        const userSites = sitesData.filter(s => s.ownerId === user.id);
         setSites(userSites);
         
-        let userAudits = auditsData.filter(a => a.ownerId === user.uid);
+        let userAudits = auditsData.filter(a => a.ownerId === user.id);
         
         if (siteIdFilter) {
           userAudits = userAudits.filter(a => a.siteId === siteIdFilter);
@@ -65,19 +62,19 @@ export default function AuditList() {
       }
     };
     loadData();
-  }, [user, siteIdFilter, migrationStatus]);
+  }, [user, siteIdFilter]);
 
   const handleDeleteAudit = async (id: string) => {
     try {
       await apiService.deleteAudit(id);
       // Reload everything to stay in sync
       const [sitesData, auditsData] = await Promise.all([
-        apiService.getSites(user?.uid || ""),
+        apiService.getSites(user?.id || ""),
         apiService.getAudits()
       ]);
-      const userSites = sitesData.filter(s => s.ownerId === user?.uid);
+      const userSites = sitesData.filter(s => s.ownerId === user?.id);
       setSites(userSites);
-      const userAudits = auditsData.filter(a => a.ownerId === user?.uid);
+      const userAudits = auditsData.filter(a => a.ownerId === user?.id);
       setAudits(userAudits.filter(a => siteIdFilter ? a.siteId === siteIdFilter : true));
       setDeletingId(null);
     } catch (error) {
@@ -103,21 +100,6 @@ export default function AuditList() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
-      {migrationStatus === 'running' && (
-        <div className="glass-card p-6 border-indigo-500/30 bg-indigo-500/5 flex items-center justify-between animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Activity className="w-6 h-6 text-white animate-bounce" />
-            </div>
-            <div>
-              <p className="text-white font-bold">Migration in Progress</p>
-              <p className="text-[#707AA1] text-xs">Moving your sites and audits to the new faster engine...</p>
-            </div>
-          </div>
-          <div className="text-indigo-400 font-mono text-sm font-bold">PLEASE WAIT</div>
-        </div>
-      )}
-
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-8 border-b border-[#22293F]">
         <div className="flex items-center gap-6">
           {siteIdFilter && (

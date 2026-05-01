@@ -36,7 +36,7 @@ export default function AuditForm() {
     const fetchSites = async () => {
       try {
         if (!user) return;
-        const data = await apiService.getSites(user.uid);
+        const data = await apiService.getSites(user.id);
         setSites(data);
       } catch (err) {
         console.error("Error fetching sites:", err);
@@ -158,7 +158,7 @@ export default function AuditForm() {
         summary: finalSummary,
         wcagVersion: "2.2",
         pourScores: finalAssessment.pourScores,
-        ownerId: user.uid
+        ownerId: user.id
       };
 
       await apiService.saveAudit(auditData);

@@ -10,27 +10,6 @@ import { motion } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 import { apiService } from "../services/apiService";
-import { useMigrationStatus } from "../services/migrationTracking";
-
-const MigrationBanner = () => {
-  const { status, error } = useMigrationStatus();
-  if (status === 'idle' || status === 'completed') return null;
-  return (
-    <div className={cn(
-      "p-4 rounded-2xl border flex items-center gap-3",
-      status === 'running' ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-    )}>
-      {status === 'running' ? (
-        <div className="w-5 h-5 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      ) : (
-        <AlertTriangle className="w-5 h-5" />
-      )}
-      <span className="text-sm font-bold">
-        {status === 'running' ? "Migration in progress: syncing this audit with the new database engine..." : error || "Migration error"}
-      </span>
-    </div>
-  );
-};
 
 export default function AuditResults() {
   const { id } = useParams();
@@ -40,8 +19,6 @@ export default function AuditResults() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { status: migrationStatus } = useMigrationStatus();
-
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -50,7 +27,7 @@ export default function AuditResults() {
         if (auditData) {
           setAudit(auditData);
           
-          const sites = await apiService.getSites(""); // OwnerId is handled by backend or not strictly filtered here
+          const sites = await apiService.getSites(""); 
           const foundSite = sites.find(s => s.id === auditData.siteId);
           if (foundSite) {
             setSite(foundSite);
@@ -69,7 +46,7 @@ export default function AuditResults() {
       }
     };
     fetchData();
-  }, [id, migrationStatus]);
+  }, [id]);
 
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -204,8 +181,6 @@ export default function AuditResults() {
         </div>
       </header>
       
-      <MigrationBanner />
-
       {isDeleting && (
         <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center justify-between">
            <div className="flex items-center gap-4 text-rose-400">

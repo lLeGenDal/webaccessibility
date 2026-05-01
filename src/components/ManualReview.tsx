@@ -5,8 +5,10 @@ import { CheckCircle2, XCircle, AlertTriangle, HelpCircle, ArrowLeft, Search, Fi
 import { Link, useParams } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { apiService } from "../services/apiService";
+import { useAuth } from "../App";
 
 export default function ManualReview() {
+  const { user } = useAuth();
   const { auditId } = useParams<{ auditId: string }>();
   const [audit, setAudit] = useState<Audit | null>(null);
   const [site, setSite] = useState<Site | null>(null);
@@ -25,7 +27,7 @@ export default function ManualReview() {
   const [comments, setComments] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!auditId) return;
+    if (!auditId || !user) return;
 
     const fetchData = async () => {
       try {
@@ -34,7 +36,7 @@ export default function ManualReview() {
         if (auditData) {
           setAudit(auditData);
 
-          const sitesData = await apiService.getSites(auditData.ownerId);
+          const sitesData = await apiService.getSites(user.id);
           const foundSite = sitesData.find(s => s.id === auditData.siteId);
           if (foundSite) {
             setSite(foundSite);
@@ -58,7 +60,7 @@ export default function ManualReview() {
     };
 
     fetchData();
-  }, [auditId]);
+  }, [auditId, user]);
 
   const updateStatus = async (issueId: string, status: "Confirmed" | "Rejected") => {
     try {

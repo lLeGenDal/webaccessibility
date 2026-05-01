@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { suggestOfficialUrl, suggestOrgRegion, suggestOfficialName, suggestOrgCategory } from "../services/geminiAuditService";
 import { apiService } from "../services/apiService";
-import { useMigrationStatus } from "../services/migrationTracking";
 
 import { KAZAKHSTAN_REGIONS } from "../constants";
 
@@ -25,15 +24,13 @@ export default function SiteList() {
   const [manualAddError, setManualAddError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { status: migrationStatus } = useMigrationStatus();
-
   useEffect(() => {
     const loadSites = async () => {
       try {
         setLoading(true);
         if (!user) return;
-        const data = await apiService.getSites(user.uid);
-        const filtered = data.filter(s => s.ownerId === user.uid);
+        const data = await apiService.getSites(user.id);
+        const filtered = data.filter(s => s.ownerId === user.id);
         setSites(filtered);
       } catch (error) {
         console.error("Error loading sites:", error);
@@ -42,7 +39,7 @@ export default function SiteList() {
       }
     };
     loadSites();
-  }, [user, migrationStatus]);
+  }, [user]);
 
   const handleAddSite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +55,11 @@ export default function SiteList() {
         id: siteId,
         ...newSite,
         url: urlToSave,
-        ownerId: user.uid,
+        ownerId: user.id,
         createdAt: new Date().toISOString()
       } as Site);
       
-      const updated = await apiService.getSites(user.uid);
+      const updated = await apiService.getSites(user.id);
       setSites(updated);
       setShowAddModal(false);
       setNewSite({ name: "", url: "", category: "University", region: "" as KZRegion });
@@ -83,7 +80,7 @@ export default function SiteList() {
     
     try {
       await apiService.saveSite(editingSite);
-      const updated = await apiService.getSites(user.uid);
+      const updated = await apiService.getSites(user.id);
       setSites(updated);
       setEditingSite(null);
     } catch (error) {
@@ -98,7 +95,7 @@ export default function SiteList() {
     if (!user) return;
     try {
       await apiService.deleteSite(id);
-      const updated = await apiService.getSites(user.uid);
+      const updated = await apiService.getSites(user.id);
       setSites(updated);
       setDeletingId(null);
     } catch (error) {
@@ -191,20 +188,6 @@ export default function SiteList() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
-      {migrationStatus === 'running' && (
-        <div className="glass-card p-6 border-indigo-500/30 bg-indigo-500/5 flex items-center justify-between animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Activity className="w-6 h-6 text-white animate-bounce" />
-            </div>
-            <div>
-              <p className="text-white font-bold">Migration in Progress</p>
-              <p className="text-[#707AA1] text-xs">Moving your sites and audits to the new faster engine...</p>
-            </div>
-          </div>
-          <div className="text-indigo-400 font-mono text-sm font-bold">PLEASE WAIT</div>
-        </div>
-      )}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-8 border-b border-[#22293F]">
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Organizations</h1>

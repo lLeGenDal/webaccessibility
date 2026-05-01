@@ -1,9 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
-import { onAuthStateChanged, User, signInWithPopup, signOut } from "firebase/auth";
-import { auth, googleProvider, db, OperationType, handleFirestoreError } from "./firebase";
-import { doc, getDoc, setDoc, onSnapshot, collection, query, where, orderBy } from "firebase/firestore";
-import { LayoutDashboard, Globe, ClipboardCheck, Settings, LogOut, LogIn, Menu, X, Plus, ChevronRight, AlertCircle, CheckCircle2, Info, GitCompare, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Globe, ClipboardCheck, Settings, LogOut, LogIn, Menu, X, Plus, ChevronRight, AlertCircle, CheckCircle2, Info, GitCompare, BarChart3, UserPlus, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "./lib/utils";
 
@@ -17,19 +14,18 @@ import AuditForm from "./components/AuditForm";
 import AuditResults from "./components/AuditResults";
 import AuditCompare from "./components/AuditCompare";
 import ManualReview from "./components/ManualReview";
-
 import AuditList from "./components/AuditList";
 import Methodology from "./components/Methodology";
-import { migrateFromFirebase } from "./services/migrationService";
 
-// Auth Context
-export const MOCK_AUTH = false; // Set to false to enable real Firebase Auth
+// Auth
+import { authService } from "./services/authService";
 
 interface AuthContextType {
-  user: User | null | any;
+  user: any | null;
   profile: UserProfile | null;
   loading: boolean;
-  login: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -42,78 +38,67 @@ export const useAuth = () => {
 };
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (MOCK_AUTH) {
-      const mockUser = {
-        uid: "mock-user-123",
-        email: "demo@qazaqaccess.kz",
-        displayName: "Демо Пользователь",
-        photoURL: null,
-      };
-      const mockProfile: UserProfile = {
-        uid: mockUser.uid,
-        email: mockUser.email,
-        displayName: mockUser.displayName,
-        role: "admin",
-      };
-      setUser(mockUser as any);
-      setProfile(mockProfile);
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
-        } else {
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || "",
-            displayName: user.displayName || "",
-            role: "user",
-          };
-          await setDoc(docRef, newProfile);
-          setProfile(newProfile);
-        }
+  const checkAuth = async () => {
+    try {
+      const userData = await authService.getMe();
+      if (userData) {
+        setUser(userData);
+        setProfile({
+          uid: userData.id,
+          email: userData.email,
+          displayName: userData.displayName,
+          role: userData.role
+        });
       } else {
+        setUser(null);
         setProfile(null);
       }
+    } catch (err) {
+      setUser(null);
+      setProfile(null);
+    } finally {
       setLoading(false);
-    });
-    return unsubscribe;
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
   }, []);
 
-  const login = async () => {
-    if (MOCK_AUTH) return;
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login error:", error);
-    }
+  const login = async (email: string, password: string) => {
+    const data = await authService.login(email, password);
+    setUser(data.user);
+    setProfile({
+        uid: data.user.id,
+        email: data.user.email,
+        displayName: data.user.displayName,
+        role: data.user.role
+    });
+  };
+
+  const register = async (email: string, password: string, displayName: string) => {
+    const data = await authService.register(email, password, displayName);
+    setUser(data.user);
+    setProfile({
+        uid: data.user.id,
+        email: data.user.email,
+        displayName: data.user.displayName,
+        role: data.user.role
+    });
   };
 
   const logout = async () => {
-    if (MOCK_AUTH) {
-      alert("В демо-режиме выход отключен");
-      return;
-    }
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    authService.logout();
+    setUser(null);
+    setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -188,7 +173,6 @@ const Sidebar = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-bold tracking-tight text-white leading-tight">Qazaq<span className="text-indigo-400">Access</span></span>
-            {MOCK_AUTH && <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Core v2.0</span>}
           </div>
         </div>
 
@@ -230,14 +214,128 @@ const Sidebar = () => {
   );
 };
 
-const MainContent = () => {
-  const { user, loading, login } = useAuth();
+const LoginForm = () => {
+  const { login, register } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (user && !loading) {
-      migrateFromFirebase(user.uid);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (isRegister) {
+        await register(email, password, displayName);
+      } else {
+        await login(email, password);
+      }
+    } catch (err: any) {
+      setError(err.message || "Authentication failed");
+    } finally {
+      setLoading(false);
     }
-  }, [user, loading]);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0D111D] p-6">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full glass-card p-10"
+      >
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(79,70,229,0.3)] mb-6">
+            <Shield className="text-white w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            Qazaq<span className="text-indigo-400">Access</span>
+          </h1>
+          <p className="text-[#707AA1] mt-2 text-sm font-medium">Neural Compliance Infrastructure</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {isRegister && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Full Name</label>
+              <div className="relative group">
+                <input
+                  type="text"
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full bg-[#161B31] border border-[#2D3558] text-white rounded-2xl px-5 py-3.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                  placeholder="John Doe"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Email Protocol</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#161B31] border border-[#2D3558] text-white rounded-2xl px-5 py-3.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+              placeholder="access@domain.kz"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Security Key</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-[#161B31] border border-[#2D3558] text-white rounded-2xl px-5 py-3.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-bold">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)] active:scale-95 disabled:opacity-50"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                {isRegister ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+                {isRegister ? "Initialize Account" : "Access Console"}
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center px-4">
+          <button
+            onClick={() => setIsRegister(!isRegister)}
+            className="text-xs font-bold text-[#707AA1] hover:text-indigo-400 transition-colors uppercase tracking-widest"
+          >
+            {isRegister ? "Already Have Access? Log In" : "Need New Clearance? Register"}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const MainContent = () => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -254,37 +352,7 @@ const MainContent = () => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D111D] p-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full glass-card p-12 text-center"
-        >
-          <div className="w-24 h-24 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(79,70,229,0.3)] mx-auto mb-10 overflow-hidden relative group">
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Globe className="text-white w-12 h-12" />
-          </div>
-          <h1 className="text-4xl font-extrabold text-white mb-4 tracking-tight">Qazaq<span className="text-indigo-400">Access</span></h1>
-          <p className="text-[#707AA1] mb-12 leading-relaxed font-medium">
-            Next-gen accessibility audit platform for Kazakhstani digital ecosystem. 
-            Automated WCAG 2.2 analysis & reporting.
-          </p>
-          <button
-            onClick={login}
-            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all duration-300 shadow-[0_5px_20px_rgba(79,70,229,0.3)] active:scale-95 group"
-          >
-            <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            Continue with Google
-          </button>
-          <div className="mt-12 flex items-center justify-center gap-2">
-            <span className="w-8 h-px bg-[#22293F]"></span>
-            <span className="text-[10px] text-[#4F5A85] uppercase tracking-[0.4em] font-black">Secure Entry</span>
-            <span className="w-8 h-px bg-[#22293F]"></span>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <LoginForm />;
   }
 
   return (

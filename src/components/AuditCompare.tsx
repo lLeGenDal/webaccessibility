@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
 import { useAuth } from "../App";
 import { Audit, Site, Issue } from "../types";
 import { motion } from "motion/react";
@@ -8,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { GitCompare, ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, XCircle, Zap, ShieldCheck, BarChart3, Globe, Layers, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { apiService } from "../services/apiService";
 
 export default function AuditCompare() {
   const { user } = useAuth();
@@ -24,13 +23,18 @@ export default function AuditCompare() {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const sitesSnap = await getDocs(query(collection(db, "sites"), where("ownerId", "==", user.uid)));
-      const sitesData = sitesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Site));
-      setSites(sitesData);
+      try {
+        const sitesData = await apiService.getSites(user.id);
+        setSites(sitesData);
 
-      const auditsSnap = await getDocs(query(collection(db, "audits"), where("ownerId", "==", user.uid)));
-      setAudits(auditsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Audit)));
-      setLoading(false);
+        const auditsData = await apiService.getAudits();
+        const userAudits = auditsData.filter(a => a.ownerId === user.id);
+        setAudits(userAudits);
+      } catch (error) {
+        console.error("Error fetching data for comparison:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [user]);
@@ -42,11 +46,15 @@ export default function AuditCompare() {
         issueSetter([]);
         return;
       }
-      const docSnap = await getDoc(doc(db, "audits", id));
-      if (docSnap.exists()) {
-        setter({ id: docSnap.id, ...docSnap.data() } as Audit);
-        const issuesSnap = await getDocs(query(collection(db, "issues"), where("auditId", "==", id)));
-        issueSetter(issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
+      try {
+        const auditData = await apiService.getAuditById(id);
+        if (auditData) {
+          setter(auditData);
+          const issuesData = await apiService.getIssues(id);
+          issueSetter(issuesData);
+        }
+      } catch (error) {
+        console.error("Error fetching audit details:", error);
       }
     };
 
