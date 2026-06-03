@@ -1,8 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { Issue } from "../types";
-
-const GEMINI_KEY = "AIzaSyA6efsEJV1PwjkImXgVpAaV0n4vu4y67qE";
-const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
 export interface AIAnalysisResult {
   aiScore: number;
@@ -18,25 +14,32 @@ export interface AIAnalysisResult {
   strategicReview?: string;
 }
 
+const getHeaders = () => {
+  const token = localStorage.getItem("token");
+  const headers: any = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 /**
  * Stage 1: Preliminary Structural Risk Assessment
  */
 export async function runAIPreAudit(html: string): Promise<string> {
-  const sample = html.substring(0, 10000); // Sample first 10k chars
-  const prompt = `
-    Analyze this HTML structure for accessibility risks. 
-    Look for complex UI patterns (modals, menus, forms) and identify likely keyboard traps or missing descriptive labels.
-    Provide a brief strategic focus for the main audit (MAX 2 sentences).
-    HTML Fragment:
-    ${sample}
-  `;
   try {
-    const result = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/pre-audit", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ html })
     });
-    return result.text.trim();
+    if (!res.ok) throw new Error("Pre-audit fetch failed");
+    const data = await res.json();
+    return data.result;
   } catch (err) {
+    console.error("runAIPreAudit error:", err);
     return "Initial structural scan completed.";
   }
 }
@@ -49,92 +52,14 @@ export async function runAISemanticAudit(
   html: string,
   technicalIssues: Issue[]
 ): Promise<AIAnalysisResult> {
-  // Extract key semantic elements for AI to evaluate
-  const scriptMatch = html.match(/<img[^>]*alt=["']([^"']*)["'][^>]*>/g) || [];
-  const altTexts = scriptMatch.slice(0, 15).join("\n"); // Sample 15 images
-  
-  const labelMatch = html.match(/<label[^>]*>([\s\S]*?)<\/label>/g) || [];
-  const labels = labelMatch.slice(0, 10).join("\n");
-
-  const prompt = `
-    Website: ${siteUrl}
-    
-    You are an expert accessibility auditor. Evaluate the SEMANTIC quality of the following elements.
-    Automated tools can check for the PRESENCE of attributes, but only you can check their MEANINGFULNESS.
-    
-    ALT TEXTS:
-    ${altTexts}
-    
-    LABELS:
-    ${labels}
-    
-    EXISTING TECHNICAL ISSUES:
-    ${technicalIssues.map(i => i.description).join("\n")}
-
-    TASKS:
-    1. Score 'semanticAltQuality' (0-100): Are alt texts descriptive or generic like "image1", "logo"?
-    2. Score 'labelClarity' (0-100): Do labels clearly describe input purpose?
-    3. Score 'navigationLogic' (0-100): Based on technical issues, how logical is the flow (Operable principle)?
-    4. Provide 'aiScore' (Weighted average of the above).
-    5. Generate 'recommendations' in Kazakh and Russian for fixing semantic (meaning) issues.
-    6. Generate a list of 'issues' (Partial<Issue>[]) for specific semantic, contrast, or complex logic problems found.
-       Focus on:
-       - Perceivable: Meaningfulness of text alternatives.
-       - Operable: Keyboard logic, focus indicators, navigation consistency (based on semantic structure).
-       - Understandable: Error message clarity, input instructions, language usage.
-       - Robust: Compatibility patterns, suspicious use of ARIA without clear semantic foundation.
-       
-       Each issue MUST have: description, criterion (WCAG string), wcagLevel (A/AA/AAA), severity (Critical/High/Medium/Low), recommendation, engine ("AI" or "Contrast").
-    
-    Return JSON format.
-    Include a 'strategicReview' field (string) with a 2-paragraph deep analysis of the overall accessibility architecture of this site.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // Use higher capacity model if possible for main scan
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            aiScore: { type: Type.NUMBER },
-            semanticAltQuality: { type: Type.NUMBER },
-            labelClarity: { type: Type.NUMBER },
-            navigationLogic: { type: Type.NUMBER },
-            recommendations: {
-              type: Type.OBJECT,
-              properties: {
-                kz: { type: Type.STRING },
-                ru: { type: Type.STRING }
-              },
-              required: ["kz", "ru"]
-            },
-            summary: { type: Type.STRING },
-            strategicReview: { type: Type.STRING },
-            issues: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  description: { type: Type.STRING },
-                  criterion: { type: Type.STRING },
-                  wcagLevel: { type: Type.STRING },
-                  severity: { type: Type.STRING },
-                  recommendation: { type: Type.STRING },
-                  engine: { type: Type.STRING }
-                },
-                required: ["description", "criterion", "wcagLevel", "severity", "recommendation", "engine"]
-              }
-            }
-          },
-          required: ["aiScore", "semanticAltQuality", "labelClarity", "navigationLogic", "recommendations", "summary", "strategicReview", "issues"]
-        }
-      }
+    const res = await fetch("/api/gemini/semantic-audit", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ siteUrl, html, technicalIssues })
     });
-
-    return JSON.parse(response.text || "{}");
+    if (!res.ok) throw new Error("Semantic audit fetch failed");
+    return await res.json();
   } catch (error) {
     console.error("Gemini semantic analysis error:", error);
     return {
@@ -160,139 +85,151 @@ export async function runAIFinalSynthesis(
   audit: any,
   issues: Issue[]
 ): Promise<string> {
-  const prompt = `
-    Summarize a comprehensive Accessibility Audit.
-    Stats: ITA Index ${audit.itaIndex}/5, AI Score ${audit.aiScore}/100, Axe Score ${audit.axeScore}/100.
-    Total Issues: ${issues.length}.
-    
-    Executive Summary (2-3 sentences): What is the single biggest barrier for users on this site?
-    Next Steps (Bullet points): Top 3 prioritized actions.
-    
-    Language: Professional Russian.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/final-synthesis", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ audit, issues })
     });
-    return response.text.trim();
+    if (!res.ok) throw new Error("Final synthesis fetch failed");
+    const data = await res.json();
+    return data.result;
   } catch (err) {
+    console.error("runAIFinalSynthesis error:", err);
     return audit.summary;
   }
 }
 
+const fallbackSuggestUrl = (orgName: string): string => {
+  const name = orgName.toLowerCase().trim();
+  if (name.includes("kaznu") || name.includes("казну")) return "https://kaznu.kz";
+  if (name.includes("enu") || name.includes("ену")) return "https://enu.kz";
+  if (name.includes("iitu") || name.includes("муит")) return "https://iitu.edu.kz";
+  if (name.includes("kbtu") || name.includes("кбту")) return "https://kbtu.edu.kz";
+  if (name.includes("casu") || name.includes("касу")) return "https://casu.edu.kz";
+  if (name.includes("aues") || name.includes("ауэс")) return "https://aues.edu.kz";
+  if (name.includes("kaspi") || name.includes("каспи")) return "https://kaspi.kz";
+  if (name.includes("halyk") || name.includes("халык")) return "https://halykbank.kz";
+  if (name.includes("eub") || name.includes("евразийский банк")) return "https://eubank.kz";
+  if (name.includes("jusan") || name.includes("жусан")) return "https://jusan.kz";
+  return "https://" + orgName.toLowerCase().replace(/[^a-z0-9]/g, "") + ".kz";
+};
+
+const fallbackSuggestRegion = (orgName: string): string => {
+  const name = orgName.toLowerCase().trim();
+  if (name.includes("алматы") || name.includes("almaty")) return "г. Алматы";
+  if (name.includes("астана") || name.includes("astana") || name.includes("нур-султан") || name.includes("nursultan")) return "г. Астана";
+  if (name.includes("шымкент") || name.includes("shymkent")) return "г. Шымкент";
+  if (name.includes("караганд") || name.includes("karagand") || name.includes("қарағанды")) return "Карагандинская область";
+  if (name.includes("актобе") || name.includes("aktobe") || name.includes("ақтөбе")) return "Актюбинская область";
+  if (name.includes("павлодар") || name.includes("pavlodar")) return "Павлодарская область";
+  if (name.includes("атырау") || name.includes("atyrau")) return "Атырауская область";
+  return "г. Алматы";
+};
+
+const fallbackSuggestName = (orgName: string): string => {
+  const name = orgName.toUpperCase().trim();
+  const pairs: Record<string, string> = {
+    "КАЗНУ": "Казахский национальный университет имени аль-Фараби",
+    "ЕНУ": "Евразийский национальный университет имени Л. Н. Гумилева",
+    "МУИТ": "Международный университет информационных технологий",
+    "IITU": "Международный университет информационных технологий",
+    "КБТУ": "Казахстанско-Британский технический университет",
+    "КАСУ": "Казахстанско-Американский свободный университет",
+    "АУЭС": "Алматинский университет энергетики и связи",
+  };
+  return pairs[name] || (orgName.charAt(0).toUpperCase() + orgName.slice(1));
+};
+
+const fallbackSuggestCategory = (orgName: string): string => {
+  const name = orgName.toLowerCase().trim();
+  if (
+    name.includes("университет") || name.includes("университеті") || name.includes("university") ||
+    name.includes("институт") || name.includes("академия") || name.includes("колледж") ||
+    name.includes("iitu") || name.includes("муит") || name.includes("казну")
+  ) {
+    return "University";
+  }
+  if (name.includes("министерство") || name.includes("департамент") || name.includes("акимат") || name.includes("управление")) {
+    return "Government";
+  }
+  if (name.includes("банк") || name.includes("финанс") || name.includes("kaspi") || name.includes("halyk")) {
+    return "Finance";
+  }
+  if (name.includes("больница") || name.includes("клиника") || name.includes("емхана") || name.includes("госпиталь")) {
+    return "Healthcare";
+  }
+  return "Company";
+};
+
 export async function suggestOfficialUrl(orgName: string): Promise<string | null> {
   if (!orgName || orgName.trim().length < 3) return null;
 
-  const prompt = `
-    Find the official website URL for the organization in Kazakhstan: "${orgName}".
-    Return only the URL. If you are not sure, try to find the most probable official one (.kz, .gov.kz, .edu.kz etc).
-    If absolutely unknown, return "null".
-    Reply ONLY with the URL string.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/suggest-url", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ orgName })
     });
-
-    const url = response.text.trim();
-    if (url.toLowerCase() === "null" || !url.startsWith("http")) {
-      return null;
-    }
-    return url;
+    if (!res.ok) throw new Error("Suggest URL fetch failed");
+    const data = await res.json();
+    return data.url || fallbackSuggestUrl(orgName);
   } catch (error) {
-    console.error("Gemini URL suggestion error:", error);
-    return null;
+    console.warn("Gemini URL suggestion client error, falling back locally:", error);
+    return fallbackSuggestUrl(orgName);
   }
 }
 
 export async function suggestOrgRegion(orgName: string): Promise<string | null> {
   if (!orgName || orgName.trim().length < 3) return null;
 
-  const prompt = `
-    Determine the primary region (oblast or city) in Kazakhstan where the organization "${orgName}" is located.
-    Choose ONLY from this exact list:
-    Абайская область, Акмолинская область, Актюбинская область, Алматинская область, Атырауская область, 
-    Западно-Казахстанская область, Жамбылская область, Жетысуская область, Карагандинская область, 
-    Костанайская область, Кызылординская область, Мангистауская область, Павлодарская область, 
-    Северо-Казахстанская область, Туркестанская область, Улытауская область, Восточно-Казахстанская область, 
-    г. Астана, г. Алматы, г. Шымкент.
-
-    Return ONLY the name from the list. If unknown, return "null".
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/suggest-region", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ orgName })
     });
-
-    const region = response.text.trim();
-    if (region.toLowerCase() === "null") return null;
-    return region;
+    if (!res.ok) throw new Error("Suggest region fetch failed");
+    const data = await res.json();
+    return data.region || fallbackSuggestRegion(orgName);
   } catch (error) {
-    console.error("Gemini context suggestion error:", error);
-    return null;
+    console.warn("Gemini context suggestion client error, falling back locally:", error);
+    return fallbackSuggestRegion(orgName);
   }
 }
 
 export async function suggestOfficialName(orgName: string): Promise<string | null> {
   if (!orgName || orgName.trim().length < 2) return null;
 
-  const prompt = `
-    You are an expert on Kazakhstan organizations.
-    User entered an abbreviation or partial name: "${orgName}".
-    Find the FULL OFFICIAL name of this organization in Russian (e.g., "КАСУ" -> "Казахстанско-Американский свободный университет").
-    If it is already a full name or you are not sure, return the original input.
-    Reply ONLY with the full name string.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/suggest-name", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ orgName })
     });
-
-    const fullName = response.text.trim();
-    return fullName || orgName;
+    if (!res.ok) throw new Error("Suggest name fetch failed");
+    const data = await res.json();
+    return data.fullName || fallbackSuggestName(orgName);
   } catch (error) {
-    console.error("Gemini name suggestion error:", error);
-    return orgName;
+    console.warn("Gemini name suggestion client error, falling back locally:", error);
+    return fallbackSuggestName(orgName);
   }
 }
 
 export async function suggestOrgCategory(orgName: string): Promise<string | null> {
   if (!orgName || orgName.trim().length < 2) return null;
 
-  const prompt = `
-    Based on the name "${orgName}", categorize this organization in Kazakhstan.
-    Choose ONLY from this exact list:
-    University, Company, Government, Healthcare, Finance, Non-Profit.
-
-    Examples:
-    - "Kaspi" -> "Finance"
-    - "IITU" -> "University"
-    - "Halyk Bank" -> "Finance"
-    - "KazMunayGas" -> "Company"
-    - "Министерство" -> "Government"
-    - "Больница" -> "Healthcare"
-
-    Return ONLY the category name. If unknown, return "Company" as default.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const res = await fetch("/api/gemini/suggest-category", {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ orgName })
     });
-
-    const category = response.text.trim();
-    return category;
+    if (!res.ok) throw new Error("Suggest category fetch failed");
+    const data = await res.json();
+    return data.category || fallbackSuggestCategory(orgName);
   } catch (error) {
-    console.error("Gemini category suggestion error:", error);
-    return "Company";
+    console.warn("Gemini category suggestion client error, falling back locally:", error);
+    return fallbackSuggestCategory(orgName);
   }
 }

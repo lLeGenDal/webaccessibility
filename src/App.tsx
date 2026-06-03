@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation 
 import { LayoutDashboard, Globe, ClipboardCheck, Settings, LogOut, LogIn, Menu, X, Plus, ChevronRight, AlertCircle, CheckCircle2, Info, GitCompare, BarChart3, UserPlus, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "./lib/utils";
+import { LanguageProvider, useLanguage } from "./LanguageContext";
 
 // Types
 import { Site, Audit, Issue, UserProfile } from "./types";
@@ -121,15 +122,15 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
           <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-red-100">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Что-то пошло не так</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Бірдеңе дұрыс болмады</h1>
             <p className="text-gray-600 mb-6">
-              {this.state.error?.message || "Произошла непредвиденная ошибка."}
+              {this.state.error?.message || "Күтпеген қате орын алды."}
             </p>
             <button
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
             >
-              Перезагрузить приложение
+              Қосымшаны қайта жүктеу
             </button>
           </div>
         </div>
@@ -163,26 +164,57 @@ const NavItem = ({ to, icon: Icon, label, active }: { to: string; icon: any; lab
 const Sidebar = () => {
   const location = useLocation();
   const { logout, profile } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <aside className="w-72 glass-sidebar flex flex-col h-screen sticky top-0 overflow-hidden">
       <div className="p-8">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.4)]">
-            <Globe className="text-white w-7 h-7" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xl font-bold tracking-tight text-white leading-tight">Qazaq<span className="text-indigo-400">Access</span></span>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+              <Globe className="text-white w-6 h-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight text-white leading-tight">Qazaq<span className="text-indigo-400">Access</span></span>
+            </div>
           </div>
         </div>
 
+        {/* High-tech Language Selector */}
+        <div className="flex bg-[#121626]/80 border border-[#232B45] p-1 rounded-2xl mb-8 gap-1 shadow-inner relative z-10">
+          <button
+            onClick={() => setLanguage("kk")}
+            className={cn(
+              "flex-1 text-[11px] py-1.5 rounded-xl font-extrabold tracking-wider transition-all duration-300",
+              language === "kk" 
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
+                : "text-[#707AA1] hover:text-white hover:bg-[#1C233B]/50"
+            )}
+            aria-label="Қазақ тілі"
+          >
+            ҚАЗ
+          </button>
+          <button
+            onClick={() => setLanguage("ru")}
+            className={cn(
+              "flex-1 text-[11px] py-1.5 rounded-xl font-extrabold tracking-wider transition-all duration-300",
+              language === "ru" 
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
+                : "text-[#707AA1] hover:text-white hover:bg-[#1C233B]/50"
+            )}
+            aria-label="Русский язык"
+          >
+            РУС
+          </button>
+        </div>
+
         <nav className="space-y-2">
-          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === "/"} />
-          <NavItem to="/sites" icon={Globe} label="Organizations" active={location.pathname === "/sites"} />
-          <NavItem to="/audits" icon={BarChart3} label="Audit Logs" active={location.pathname === "/audits"} />
-          <NavItem to="/audit/new" icon={ClipboardCheck} label="Start Audit" active={location.pathname === "/audit/new"} />
-          <NavItem to="/compare" icon={GitCompare} label="Compare Results" active={location.pathname === "/compare"} />
-          <NavItem to="/settings" icon={Settings} label="System Config" active={location.pathname === "/settings"} />
+          <NavItem to="/" icon={LayoutDashboard} label={t("nav.dashboard")} active={location.pathname === "/"} />
+          <NavItem to="/sites" icon={Globe} label={t("nav.sites")} active={location.pathname === "/sites"} />
+          <NavItem to="/audits" icon={BarChart3} label={t("nav.audits")} active={location.pathname === "/audits"} />
+          <NavItem to="/audit/new" icon={ClipboardCheck} label={t("nav.startAudit")} active={location.pathname === "/audit/new"} />
+          <NavItem to="/compare" icon={GitCompare} label={t("nav.compare")} active={location.pathname === "/compare"} />
+          <NavItem to="/methodology" icon={Info} label={t("nav.methodology")} active={location.pathname === "/methodology"} />
         </nav>
       </div>
 
@@ -191,7 +223,7 @@ const Sidebar = () => {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-75 blur group-hover:opacity-100 transition duration-1000"></div>
             <div className="relative w-10 h-10 rounded-full bg-[#161B31] flex items-center justify-center text-indigo-400 font-bold border border-[#2D3558]">
-              {profile?.displayName?.charAt(0) || "U"}
+              {profile?.displayName?.charAt(0) || "П"}
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -207,7 +239,7 @@ const Sidebar = () => {
           className="flex items-center gap-3 w-full px-5 py-4 text-[#707AA1] hover:bg-[#EE4444]/10 hover:text-[#EE4444] rounded-2xl transition-all duration-300 group"
         >
           <LogOut className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1" />
-          <span className="text-sm font-semibold">Sign Out</span>
+          <span className="text-sm font-semibold">{t("nav.logout")}</span>
         </button>
       </div>
     </aside>
@@ -222,6 +254,7 @@ const LoginForm = () => {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,13 +287,13 @@ const LoginForm = () => {
           <h1 className="text-3xl font-black text-white tracking-tight">
             Qazaq<span className="text-indigo-400">Access</span>
           </h1>
-          <p className="text-[#707AA1] mt-2 text-sm font-medium">Neural Compliance Infrastructure</p>
+          <p className="text-[#707AA1] mt-2 text-sm font-medium">{t("auth.neural")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {isRegister && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Full Name</label>
+              <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">{t("auth.fullName")}</label>
               <div className="relative group">
                 <input
                   type="text"
@@ -268,26 +301,26 @@ const LoginForm = () => {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   className="w-full bg-[#161B31] border border-[#2D3558] text-white rounded-2xl px-5 py-3.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
-                  placeholder="John Doe"
+                  placeholder={t("auth.placeholderName")}
                 />
               </div>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Email Protocol</label>
+            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">{t("auth.email")}</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#161B31] border border-[#2D3558] text-white rounded-2xl px-5 py-3.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
-              placeholder="access@domain.kz"
+              placeholder={t("auth.placeholderEmail")}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">Security Key</label>
+            <label className="text-[10px] font-black text-[#5C6689] uppercase tracking-widest ml-1">{t("auth.password")}</label>
             <input
               type="password"
               required
@@ -315,7 +348,7 @@ const LoginForm = () => {
             ) : (
               <>
                 {isRegister ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-                {isRegister ? "Initialize Account" : "Access Console"}
+                {isRegister ? t("nav.register") : t("nav.login")}
               </>
             )}
           </button>
@@ -326,7 +359,7 @@ const LoginForm = () => {
             onClick={() => setIsRegister(!isRegister)}
             className="text-xs font-bold text-[#707AA1] hover:text-indigo-400 transition-colors uppercase tracking-widest"
           >
-            {isRegister ? "Already Have Access? Log In" : "Need New Clearance? Register"}
+            {isRegister ? t("auth.hasAccount") : t("auth.noAccount")}
           </button>
         </div>
       </motion.div>
@@ -336,6 +369,7 @@ const LoginForm = () => {
 
 const MainContent = () => {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
 
   if (loading) {
     return (
@@ -345,7 +379,7 @@ const MainContent = () => {
             <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
             <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full" />
           </div>
-          <p className="text-indigo-400 text-sm font-bold uppercase tracking-[0.3em] animate-pulse">Initializing System</p>
+          <p className="text-indigo-400 text-sm font-bold uppercase tracking-[0.3em] animate-pulse">{t("auth.loadingSystem")}</p>
         </div>
       </div>
     );
@@ -369,7 +403,7 @@ const MainContent = () => {
             <Route path="/audit/:auditId/manual" element={<ManualReview />} />
             <Route path="/compare" element={<AuditCompare />} />
             <Route path="/methodology" element={<Methodology />} />
-            <Route path="/settings" element={<div className="glass-card p-10 text-center text-[#707AA1] font-bold uppercase tracking-widest">Configuration module encrypted</div>} />
+            <Route path="/settings" element={<div className="glass-card p-10 text-center text-[#707AA1] font-bold uppercase tracking-widest">Конфигурациялық модуль шифрланған</div>} />
           </Routes>
         </div>
       </main>
@@ -381,11 +415,13 @@ const MainContent = () => {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router>
-          <MainContent />
-        </Router>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <Router>
+            <MainContent />
+          </Router>
+        </AuthProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

@@ -311,7 +311,7 @@ export default function ManualReview() {
         {filteredIssues.length > 0 ? (
           filteredIssues.map((issue, index) => (
             <motion.div
-              key={issue.id}
+              key={`${issue.id}-${index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}

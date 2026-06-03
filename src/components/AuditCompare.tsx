@@ -319,8 +319,8 @@ export default function AuditCompare() {
                 </span>
               </h3>
               <div className="space-y-4">
-                {audit1Issues.filter(i => i.severity === 'Critical' || i.severity === 'High').slice(0, 5).map(issue => (
-                  <div key={issue.id} className="p-4 rounded-2xl bg-red-50 border border-red-100">
+                {audit1Issues.filter(i => i.severity === 'Critical' || i.severity === 'High').slice(0, 5).map((issue, idx) => (
+                  <div key={`${issue.id}-${idx}`} className="p-4 rounded-2xl bg-red-50 border border-red-100">
                     <p className="font-bold text-red-900 text-sm">{issue.criterion}</p>
                     <p className="text-xs text-red-700 mt-1 line-clamp-2">{issue.description}</p>
                   </div>
@@ -340,8 +340,8 @@ export default function AuditCompare() {
                 </span>
               </h3>
               <div className="space-y-4">
-                {audit2Issues.filter(i => i.severity === 'Critical' || i.severity === 'High').slice(0, 5).map(issue => (
-                  <div key={issue.id} className="p-4 rounded-2xl bg-red-50 border border-red-100">
+                {audit2Issues.filter(i => i.severity === 'Critical' || i.severity === 'High').slice(0, 5).map((issue, idx) => (
+                  <div key={`${issue.id}-${idx}`} className="p-4 rounded-2xl bg-red-50 border border-red-100">
                     <p className="font-bold text-red-900 text-sm">{issue.criterion}</p>
                     <p className="text-xs text-red-700 mt-1 line-clamp-2">{issue.description}</p>
                   </div>

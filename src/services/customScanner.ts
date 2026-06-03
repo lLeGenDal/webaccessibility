@@ -28,8 +28,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "perceivable",
       severity: "High",
-      description: "Отсутствуют структурные ориентиры (landmarks: main, nav, header, footer).",
-      recommendation: "Используйте семантические HTML5 теги для разметки основных областей страницы.",
+      description: "Құрылымдық бағдарлар жетіспейді (landmarks: main, nav, header, footer).",
+      recommendation: "Парақшаның негізгі аймақтарын белгілеу үшін семантикалық HTML5 тегтерін пайдаланыңыз.",
       engine: "Internal",
       source: "Semantic Engine",
       status: "Confirmed"
@@ -45,8 +45,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "Critical",
-      description: `Обнаружено ${emptyInteractive.length} пустых интерактивных элементов (ссылок или кнопок).`,
-      recommendation: "Убедитесь, что все ссылки и кнопки имеют текстовое описание или aria-label.",
+      description: `Бос күйдегі ${emptyInteractive.length} интерактивті элемент (сілтеме немесе батырма) анықталды.`,
+      recommendation: "Сілтемелер мен батырмалардың барлығында мәтіндік сипаттама немесе aria-label бар екеніне көз жеткізіңіз.",
       engine: "Internal",
       source: "Interaction Engine",
       status: "Confirmed"
@@ -57,7 +57,7 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
   // 3a. Operable: meaningful link text
   const vagueLinks = Array.from(doc.querySelectorAll('a')).filter(a => {
     const text = a.textContent?.trim().toLowerCase();
-    return text === 'подробнее' || text === 'click here' || text === 'ссылка' || text === 'здесь';
+    return text === 'подробнее' || text === 'click here' || text === 'ссылка' || text === 'здесь' || text === 'толығырақ' || text === 'сілтеме' || text === 'басыңыз';
   });
   if (vagueLinks.length > 0) {
     issues.push({
@@ -65,8 +65,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "Medium",
-      description: `Обнаружено ${vagueLinks.length} ссылок с неинформативным текстом (например, "подробнее").`,
-      recommendation: "Используйте текст ссылки, который описывает цель перехода даже вне контекста.",
+      description: `Түсініксіз мәтіні бар (мысалы, "толығырақ") ${vagueLinks.length} сілтеме анықталды.`,
+      recommendation: "Мән-жайдан тыс ауысу мақсатын сипаттайтын сілтеме мәтінін пайдаланыңыз.",
       engine: "Internal",
       source: "Content Engine",
       status: "Confirmed"
@@ -82,8 +82,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "Low",
-      description: "Обнаружены iframe без атрибута title.",
-      recommendation: "Добавьте атрибут title к элементам iframe для описания их содержимого.",
+      description: "Title атрибуты жоқ iframe элементтері анықталды.",
+      recommendation: "Ішіндегі мазмұнды сипаттау үшін iframe элементтеріне title атрибутын қосыңыз.",
       engine: "Internal",
       source: "Container Engine",
       status: "Confirmed"
@@ -99,8 +99,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "High",
-      description: "Заголовок страницы (title) отсутствует или пуст.",
-      recommendation: "Добавьте информативный тег <title> в <head> документа.",
+      description: "Парақша атауы (title) жоқ немесе бос.",
+      recommendation: "Құжаттың <head> бөліміне мағыналы <title> тегін қосыңыз.",
       engine: "Internal",
       source: "Head Engine",
       status: "Confirmed"
@@ -119,8 +119,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "Medium",
-      description: "Отсутствует механизм пропуска повторяющихся блоков (skip link).",
-      recommendation: "Добавьте ссылку 'Перейти к основному контенту' в начале страницы.",
+      description: "Қайталанатын блоктарды өткізіп жіберу механизмі (skip link) жоқ.",
+      recommendation: "Парақшаның басына 'Негізгі контентке өту' сілтемесін қосыңыз.",
       engine: "Internal",
       source: "Navigation Engine",
       status: "Confirmed"
@@ -136,8 +136,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "Medium",
-      description: "Использование положительных значений tabindex нарушает естественный порядок табуляции.",
-      recommendation: "Удалите положительные значения tabindex. Используйте 0 или -1.",
+      description: "Оң мәнді tabindex параметрлерін пайдалану табиғи табуляция ретін бұзады.",
+      recommendation: "Оң мәнді tabindex параметрлерін алып тастаңыз. 0 немесе -1 мәндерін пайдаланыңыз.",
       engine: "Internal",
       source: "Focus Engine",
       status: "Confirmed"
@@ -153,8 +153,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "operable",
       severity: "High",
-      description: "Обнаружено автоматическое обновление страницы (meta refresh).",
-      recommendation: "Избегайте автоматического обновления; дайте пользователю контроль над временем.",
+      description: "Парақшаның автоматты түрде жаңаруы (meta refresh) анықталды.",
+      recommendation: "Автоматты түрде жаңарудан аулақ болыңыз; пайдаланушыға уақытты бақылауға мүмкіндік беріңіз.",
       engine: "Internal",
       source: "Timing Engine",
       status: "Confirmed"
@@ -171,8 +171,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "understandable",
       severity: "Critical",
-      description: "Не указан основной язык документа (атрибут lang тега html).",
-      recommendation: "Добавьте атрибут lang (например, lang=\"ru\") к тегу <html>.",
+      description: "Құжаттың негізгі тілі көрсетілмеген (html тегінің lang атрибуты).",
+      recommendation: "<html> тегіне lang атрибутын (мысалы, lang=\"kk\" немесе lang=\"ru\") қосыңыз.",
       engine: "Internal",
       source: "Language Engine",
       status: "Confirmed"
@@ -194,8 +194,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
         wcagLevel: "A",
         principle: "understandable",
         severity: "High",
-        description: `Поле формы (${input.tagName.toLowerCase()}) не имеет связанной метки (label) или описания.`,
-        recommendation: "Используйте элемент <label> с атрибутом for или aria-label для описания назначения поля.",
+        description: `Пішін өрісінде (${input.tagName.toLowerCase()}) байланыстырылған таңбаша (label) немесе сипаттама жоқ.`,
+        recommendation: "Өріс мақсатын сипаттау үшін for атрибуты бар <label> элементін немесе aria-label параметрін пайдаланыңыз.",
         engine: "Internal",
         source: "Form Engine",
         status: "Confirmed"
@@ -217,8 +217,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "robust",
       severity: "Medium",
-      description: "Обнаружены дублирующиеся ID элементов, что может вызвать проблемы у скринридеров.",
-      recommendation: "Убедитесь, что все атрибуты ID на странице уникальны.",
+      description: "Элементтерде қайталанатын ID анықталды, бұл экрандағы мәтінді оқу құрылғыларында мәселе тудыруы мүмкін.",
+      recommendation: "Парақшадағы барлық ID атрибуттары бірегей екеніне көз жеткізіңіз.",
       engine: "Internal",
       source: "Parser Engine",
       status: "Confirmed"
@@ -235,8 +235,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
             wcagLevel: "A",
             principle: "robust",
             severity: "High",
-            description: "Элемент contenteditable не имеет ARIA-роли.",
-            recommendation: "Добавьте соответствующую роль (например, role=\"textbox\"), чтобы скринридер понимал назначение элемента.",
+            description: "Contenteditable элементінде ARIA рөлі көрсетілмеген.",
+            recommendation: "Экрандағы мәтінді оқу құрылғысы элемент мақсатын түсінуі үшін тиісті рөлді (мысалы, role=\"textbox\") қосыңыз.",
             engine: "Internal",
             source: "ARIA Engine",
             status: "Confirmed"
@@ -253,8 +253,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
       wcagLevel: "A",
       principle: "robust",
       severity: "Low",
-      description: `Использование устаревших HTML-тегов (${deprecated[0].tagName.toLowerCase()}).`,
-      recommendation: "Замените устаревшие теги (font, center и др.) на современные CSS-аналоги.",
+      description: `Ескірген HTML тегтерін (${deprecated[0].tagName.toLowerCase()}) пайдалану.`,
+      recommendation: "Ескірген тегтерді (font, center т.б.) заманауи CSS баламаларына ауыстырыңыз.",
       engine: "Internal",
       source: "Standards Engine",
       status: "Confirmed"
@@ -270,8 +270,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
         wcagLevel: "A",
         principle: "robust",
         severity: "Medium",
-        description: "Использование интерактивных ARIA-атрибутов на неинтерактивных элементах без указания роли (role).",
-        recommendation: "Добавьте соответствующую роль (button, link) или используйте нативные HTML элементы.",
+        description: "Рөлді (role) көрсетпей, интерактивті емес элементтерде интерактивті ARIA атрибуттарын пайдалану.",
+        recommendation: "Тиісті рөлді (button, link) қосыңыз немесе стандартты HTML элементтерін пайдаланыңыз.",
         engine: "Internal",
         source: "ARIA Engine",
         status: "Confirmed"
@@ -290,8 +290,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
         wcagLevel: "A",
         principle: "perceivable",
         severity: "Medium",
-        description: `Нарушена иерархия заголовков: переход от H${lastLevel} к H${level}`,
-        recommendation: "Используйте последовательную иерархию заголовков.",
+        description: `Тақырыптар иерархиясы бұзылған: H${lastLevel} деңгейінен H${level} деңгейіне өту`,
+        recommendation: "Тақырыптардың дәйекті иерархиясын пайдаланыңыз.",
         engine: "Internal",
         source: "Hierarchy Engine",
         status: "Confirmed"
@@ -318,8 +318,8 @@ export function runCustomScanner(html: string): CustomAnalysisResult {
             wcagLevel: "AAA",
             principle: "understandable",
             severity: "Low",
-            description: "Обнаружена длинная форма. Проверьте на предмет повторного ввода одних и тех же данных (WCAG 2.2).",
-            recommendation: "Используйте автозаполнение или предоставляйте ранее введенную информацию.",
+            description: "Ұзын пішін анықталды. Бір деректерді қайталап енгізуге қатысты тексеріңіз (WCAG 2.2).",
+            recommendation: "Автотолтыруды пайдаланыңыз немесе бұрын енгізілген ақпаратты ұсыныңыз.",
             engine: "Internal",
             source: "WCAG 2.2 Scanner",
             status: "Confirmed"

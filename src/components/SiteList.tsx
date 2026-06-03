@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../App";
+import { useLanguage } from "../LanguageContext";
 import { Site, KZRegion } from "../types";
 import { useNavigate } from "react-router-dom";
 import { Plus, Globe, Trash2, ExternalLink, Building2, GraduationCap, Search, Loader2, AlertCircle, BarChart3, Edit2, ShieldCheck, Activity, Calculator, Heart, Sparkles, X } from "lucide-react";
@@ -12,6 +13,7 @@ import { KAZAKHSTAN_REGIONS } from "../constants";
 
 export default function SiteList() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [sites, setSites] = useState<Site[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -163,14 +165,14 @@ export default function SiteList() {
       disabled={disabled}
       value={value}
       onChange={onChange}
-      className="w-full px-5 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 appearance-none cursor-pointer"
+      className="w-full px-5 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 appearance-none cursor-pointer text-sm"
     >
-      <option value="University">Университет</option>
-      <option value="Company">Компания</option>
-      <option value="Government">Гос. сектор</option>
-      <option value="Healthcare">Здравоохранение</option>
-      <option value="Finance">Финансы</option>
-      <option value="Non-Profit">НПО / Благотворительность</option>
+      <option value="University">{t("cat.University")}</option>
+      <option value="Company">{t("cat.Company")}</option>
+      <option value="Government">{t("cat.Government")}</option>
+      <option value="Healthcare">{t("cat.Healthcare")}</option>
+      <option value="Finance">{t("cat.Finance")}</option>
+      <option value="Non-Profit">{t("cat.Non-Profit")}</option>
     </select>
   );
 
@@ -182,7 +184,9 @@ export default function SiteList() {
   if (loading) return (
     <div className="min-h-[400px] flex flex-col items-center justify-center gap-6">
       <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">Syncing System</p>
+      <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">
+        {language === "kk" ? "Жүйе үндестірілуде" : "Синхронизация системы"}
+      </p>
     </div>
   );
 
@@ -190,8 +194,8 @@ export default function SiteList() {
     <div className="space-y-10 animate-in fade-in duration-700">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-8 border-b border-[#22293F]">
         <div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">Organizations</h1>
-          <p className="text-[#707AA1] mt-2 font-medium tracking-wide italic">Strategic registry of Kazakhstani digital ecosystem entities</p>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">{t("nav.sites")}</h1>
+          <p className="text-[#707AA1] mt-2 font-medium tracking-wide italic">{t("sites.description")}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative group w-full lg:w-80">
@@ -199,7 +203,7 @@ export default function SiteList() {
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search registry..."
+              placeholder={t("sites.searchPlaceholder")}
               className="w-full pl-12 pr-6 py-4 bg-[#1F2641]/50 border border-[#2D3558] rounded-2xl text-sm text-white placeholder-[#4F5A85] focus:ring-2 focus:ring-indigo-500 outline-none transition-all backdrop-blur-md"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4F5A85] group-focus-within:text-indigo-400 transition-colors" />
@@ -209,7 +213,7 @@ export default function SiteList() {
             className="flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)] group active:scale-95"
           >
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-            <span className="tracking-tight">Add Organization</span>
+            <span className="tracking-tight">{t("sites.addBtn")}</span>
           </button>
         </div>
       </header>
@@ -218,7 +222,7 @@ export default function SiteList() {
         <AnimatePresence>
           {filteredSites.map((site, i) => (
             <motion.div
-              key={site.id}
+              key={`${site.id}-${i}`}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -248,13 +252,13 @@ export default function SiteList() {
                           onClick={(e) => { e.stopPropagation(); handleDeleteSite(site.id); }}
                           className="px-3 py-2 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-rose-500 shadow-lg shadow-rose-600/20"
                         >
-                          Confirm
+                          {language === "kk" ? "Растау" : "Да"}
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
                           className="px-3 py-2 bg-[#1F2641] text-[#A6AFC9] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#2D3558]"
                         >
-                          No
+                          {language === "kk" ? "Жоқ" : "Нет"}
                         </button>
                       </div>
                     ) : (
@@ -272,13 +276,13 @@ export default function SiteList() {
                   <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors leading-tight">{site.name}</h3>
                   <div className="flex items-center gap-2 text-[#707AA1] mb-8">
                     <Globe className="w-4 h-4 text-[#2D3558]" />
-                    <span className="text-xs font-medium tracking-wide truncate max-w-[200px]">{site.url ? site.url.replace(/^https?:\/\//, '') : 'No URL set'}</span>
+                    <span className="text-xs font-medium tracking-wide truncate max-w-[200px]">{site.url ? site.url.replace(/^https?:\/\//, '') : 'Сілтеме белгіленбеген'}</span>
                   </div>
                 </div>
                 
                 <div className="flex items-end justify-between pt-8 border-t border-[#22293F]">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4F5A85]">Strat. Compliance</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4F5A85]">Стратегиялық сәйкестік</span>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-3xl font-black text-indigo-400">{site.lastItaIndex || "0.0"}</span>
                        <span className="text-[10px] font-bold text-[#707AA1] uppercase">ITA</span>
@@ -290,7 +294,7 @@ export default function SiteList() {
                       className="px-5 py-3 bg-[#1F2641] text-[#A6AFC9] hover:bg-[#2D3558] hover:text-white rounded-xl transition-all font-bold text-xs uppercase tracking-widest flex items-center gap-2"
                     >
                       <BarChart3 className="w-4 h-4" />
-                      Logs
+                      Журналдар
                     </button>
                     <a 
                       href={site.url} 
@@ -319,7 +323,7 @@ export default function SiteList() {
             className="glass-card p-10 max-w-lg w-full border-[#2D3558]"
           >
             <div className="flex items-center justify-between mb-10">
-              <h2 className="text-3xl font-bold text-white tracking-tight">New Entity</h2>
+              <h2 className="text-3xl font-bold text-white tracking-tight">Жаңа ұйым</h2>
               <button 
                 onClick={() => setShowAddModal(false)}
                 className="p-2 text-[#707AA1] hover:text-white transition-colors"
@@ -339,8 +343,8 @@ export default function SiteList() {
             <form onSubmit={handleAddSite} className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] flex items-center justify-between">
-                  <span>Organization Name</span>
-                  {isFindingUrl && <span className="text-indigo-400 animate-pulse font-bold lowercase italic">AI Profiling...</span>}
+                  <span>Ұйым атауы</span>
+                  {isFindingUrl && <span className="text-indigo-400 animate-pulse font-bold lowercase italic">ЖИ талдау...</span>}
                 </label>
                 <div className="relative group">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D3558] group-focus-within:text-indigo-400 transition-colors" />
@@ -351,14 +355,14 @@ export default function SiteList() {
                     value={newSite.name}
                     onChange={e => setNewSite({...newSite, name: e.target.value})}
                     className="w-full pl-12 pr-6 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-white placeholder-[#2D3558] focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    placeholder="E.g. Nazarbayev University"
+                    placeholder="Мысалы: Назарбаев Университеті"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Website URL</label>
+                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Веб-сайт сілтемесі</label>
                   <button
                     type="button"
                     onClick={handleAiAutofill}
@@ -366,7 +370,7 @@ export default function SiteList() {
                     className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 flex items-center gap-2 disabled:opacity-30 transition-all border border-indigo-500/20 px-3 py-1.5 rounded-lg bg-indigo-500/5 shadow-lg shadow-indigo-500/5 group"
                   >
                     {isFindingUrl ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Sparkles className="w-4 h-4 group-hover:scale-125 transition-transform" />}
-                    AI Intelligence Fill
+                    ЖИ автоматты толтыру
                   </button>
                 </div>
                 <div className="relative group">
@@ -384,7 +388,7 @@ export default function SiteList() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Category</label>
+                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Санат</label>
                   <CategorySelect 
                     value={newSite.category} 
                     onChange={(e: any) => setNewSite({...newSite, category: e.target.value as any})}
@@ -392,7 +396,7 @@ export default function SiteList() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Region</label>
+                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Аймақ</label>
                   <select
                     required
                     disabled={isAddingManually}
@@ -400,7 +404,7 @@ export default function SiteList() {
                     onChange={e => setNewSite({...newSite, region: e.target.value as KZRegion})}
                     className="w-full px-5 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 appearance-none cursor-pointer"
                   >
-                    <option value="">Select Region</option>
+                    <option value="">Аймақты таңдау</option>
                     {KAZAKHSTAN_REGIONS.map(r => (
                       <option key={r} value={r}>{r}</option>
                     ))}
@@ -415,7 +419,7 @@ export default function SiteList() {
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 px-8 py-4 bg-[#1F2641] text-[#A6AFC9] rounded-2xl font-bold border border-[#2D3558] hover:bg-[#2D3558] hover:text-white transition-all disabled:opacity-50"
                 >
-                  Cancel
+                  Бас тарту
                 </button>
                 <button
                   type="submit"
@@ -425,10 +429,10 @@ export default function SiteList() {
                   {isAddingManually ? (
                     <div className="flex items-center gap-3">
                        <Loader2 className="w-5 h-5 animate-spin" />
-                       <span>Processing...</span>
+                       <span>Өңделуде...</span>
                     </div>
                   ) : (
-                    "Authorize Entity"
+                    "Ұйымды тіркеу"
                   )}
                 </button>
               </div>
@@ -445,7 +449,7 @@ export default function SiteList() {
             className="glass-card p-10 max-w-lg w-full border-[#2D3558]"
           >
             <div className="flex items-center justify-between mb-10">
-              <h2 className="text-3xl font-bold text-white tracking-tight">Edit Entity</h2>
+              <h2 className="text-3xl font-bold text-white tracking-tight">Ұйымды өңдеу</h2>
               <button 
                 onClick={() => setEditingSite(null)}
                 className="p-2 text-[#707AA1] hover:text-white transition-colors"
@@ -457,7 +461,7 @@ export default function SiteList() {
             
             <form onSubmit={handleUpdateSite} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Organization Name</label>
+                <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Ұйым атауы</label>
                 <input
                   required
                   type="text"
@@ -468,7 +472,7 @@ export default function SiteList() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Website URL</label>
+                <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Веб-сайт сілтемесі</label>
                 <input
                   required
                   type="url"
@@ -480,7 +484,7 @@ export default function SiteList() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Category</label>
+                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Санат</label>
                   <CategorySelect 
                     value={editingSite.category} 
                     onChange={(e: any) => setEditingSite({...editingSite, category: e.target.value as any})}
@@ -488,7 +492,7 @@ export default function SiteList() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Region</label>
+                  <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Аймақ</label>
                   <select
                     required
                     disabled={isAddingManually}
@@ -496,7 +500,7 @@ export default function SiteList() {
                     onChange={e => setEditingSite({...editingSite, region: e.target.value as KZRegion})}
                     className="w-full px-5 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer"
                   >
-                    <option value="">Select Region</option>
+                    <option value="">Аймақты таңдау</option>
                     {KAZAKHSTAN_REGIONS.map(r => (
                       <option key={r} value={r}>{r}</option>
                     ))}
@@ -511,14 +515,14 @@ export default function SiteList() {
                   onClick={() => setEditingSite(null)}
                   className="flex-1 px-8 py-4 bg-[#1F2641] text-[#A6AFC9] rounded-2xl font-bold border border-[#2D3558] hover:bg-[#2D3558] transition-all"
                 >
-                  Cancel
+                  Бас тарту
                 </button>
                 <button
                   type="submit"
                   disabled={isAddingManually}
                   className="flex-1 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-3"
                 >
-                  {isAddingManually ? <Loader2 className="w-5 h-5 animate-spin" /> : "Commit Changes"}
+                  {isAddingManually ? <Loader2 className="w-5 h-5 animate-spin" /> : "Өзгерістерді сақтау"}
                 </button>
               </div>
             </form>

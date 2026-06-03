@@ -226,9 +226,9 @@ export default function AxeAudit() {
                     <p className="text-gray-500">Ваш интерфейс соответствует базовым правилам доступности.</p>
                   </div>
                 ) : (
-                  results?.violations.map((violation) => (
+                  results?.violations.map((violation, idx) => (
                     <div 
-                      key={violation.id}
+                      key={`${violation.id}-${idx}`}
                       className="border border-gray-100 rounded-2xl overflow-hidden hover:border-indigo-200 transition-all"
                     >
                       <button
@@ -285,8 +285,8 @@ export default function AxeAudit() {
                 exit={{ opacity: 0, x: -20 }}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                {results?.passes.map((pass) => (
-                  <div key={pass.id} className="p-4 border border-green-100 bg-green-50/30 rounded-2xl flex items-start gap-3">
+                {results?.passes.map((pass, pidx) => (
+                  <div key={`${pass.id}-${pidx}`} className="p-4 border border-green-100 bg-green-50/30 rounded-2xl flex items-start gap-3">
                     <CheckCircle className="text-green-600 w-5 h-5 mt-0.5 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-gray-900 text-sm">{pass.help}</h4>

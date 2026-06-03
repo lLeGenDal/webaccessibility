@@ -67,8 +67,8 @@ export default function AuditResults() {
     return acc;
   }, {} as Record<string, Issue[]>);
 
-  if (loading) return <div className="p-8 text-center animate-pulse text-gray-500">Загрузка результатов...</div>;
-  if (!audit || !site) return <div className="p-8 text-center text-red-500">Аудит не найден.</div>;
+  if (loading) return <div className="p-8 text-center animate-pulse text-gray-500">Нәтижелер жүктелуде...</div>;
+  if (!audit || !site) return <div className="p-8 text-center text-red-500">Аудит табылмады.</div>;
 
   const severityColor = (sev: string) => {
     switch (sev) {
@@ -114,20 +114,20 @@ export default function AuditResults() {
 
   const getPourDescription = (key: string) => {
     switch (key) {
-      case 'perceivable': return 'Воспринимаемость: информация и компоненты интерфейса должны быть представлены в понятном для органов чувств виде.';
-      case 'operable': return 'Управляемость: компоненты интерфейса и навигация должны быть работоспособными.';
-      case 'understandable': return 'Понятность: информация и управление интерфейсом должны быть понятными.';
-      case 'robust': return 'Надежность: контент должен быть достаточно надежным для интерпретации различными ассистивными технологиями.';
+      case 'perceivable': return 'Қабылдану деңгейі: ақпарат және интерфейс компоненттері қолданушының сезу мүшелеріне түсінікті түрде ұсынылуы тиіс.';
+      case 'operable': return 'Басқарылу деңгейі: интерфейстің компоненттері мен навигациясы жұмысқа қабілетті болуы тиіс.';
+      case 'understandable': return 'Түсініктілігі: интерфейс ережелері мен ақпарат түсінікті болуы тиіс.';
+      case 'robust': return 'Сенімділігі: контент әр түрлі көмекші технологиялармен талдау үшін жеткілікті сенімді болуы тиіс.';
       default: return '';
     }
   };
 
   const getPourTitle = (key: string) => {
     switch (key) {
-      case 'perceivable': return 'Perceivable';
-      case 'operable': return 'Operable';
-      case 'understandable': return 'Understandable';
-      case 'robust': return 'Robust';
+      case 'perceivable': return 'Қабылдануы';
+      case 'operable': return 'Басқарылуы';
+      case 'understandable': return 'Түсініктілігі';
+      case 'robust': return 'Сенімділігі';
       default: return key;
     }
   };
@@ -152,14 +152,14 @@ export default function AuditResults() {
           </Link>
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-4xl font-extrabold text-white tracking-tight">AuditIntelligence</h1>
+              <h1 className="text-4xl font-extrabold text-white tracking-tight">АудитТалдауы (AuditIntelligence)</h1>
               {issues.some(i => i.status === "Pending") ? (
                 <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg border border-amber-500/20">
-                  Pending Verification
+                  Тексеру күтілуде
                 </span>
               ) : (
                 <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(79,70,229,0.1)]">
-                  Authorized Result
+                  Бекітілген нәтиже
                 </span>
               )}
             </div>
@@ -170,7 +170,7 @@ export default function AuditResults() {
         </div>
         <div className="flex gap-4">
           <Link to={`/audit/${id}/manual`} className="flex items-center gap-3 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)]">
-            <CheckCircle2 className="w-5 h-5" /> Expert Review
+            <CheckCircle2 className="w-5 h-5" /> Сарапшы шолуы
           </Link>
           <button 
             onClick={() => setIsDeleting(!isDeleting)}
@@ -185,22 +185,22 @@ export default function AuditResults() {
         <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center justify-between">
            <div className="flex items-center gap-4 text-rose-400">
              <AlertCircle className="w-6 h-6" />
-             <span className="font-bold uppercase tracking-widest text-xs">Purge audit record from centralized registry?</span>
+             <span className="font-bold uppercase tracking-widest text-xs">Аудит жазбасын орталықтандырылған тізілімнен жою керек пе?</span>
            </div>
            <div className="flex gap-4">
-             <button onClick={handleDelete} className="px-6 py-2 bg-rose-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-rose-500 transition-all">Confirm Purge</button>
-             <button onClick={() => setIsDeleting(false)} className="px-6 py-2 glass-card text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl">Abort</button>
+             <button onClick={handleDelete} className="px-6 py-2 bg-rose-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-rose-500 transition-all">Жоюды растау</button>
+             <button onClick={() => setIsDeleting(false)} className="px-6 py-2 glass-card text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl">Тоқтату</button>
            </div>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
         {[
-          { label: "Internal Core", value: audit.internalScore, color: "text-indigo-400", info: "Комплексная техническая оценка на основе внутренних алгоритмов сканирования." },
-          { label: "Axe Technical", value: audit.axeScore, color: "text-indigo-400", info: "Оценка на базе индустриального стандарта Axe Core (верификация структуры)." },
-          { label: "Lighthouse Web", value: audit.lighthouseScore || 0, color: "text-amber-400", info: "Симуляция баллов Google Lighthouse Accessibility для базовой проверки." },
-          { label: "Contrast Pulse", value: audit.contrastScore || 0, color: "text-emerald-400", info: "Индекс контрастности. Опирается на критерии WCAG 1.4.3 и 1.4.6 (текст/фон)." },
-          { label: "Neural Semantic", value: audit.aiScore, color: "text-indigo-400", info: "Оценка семантики от Gemini AI. Анализирует смысл подписей и логику контента." }
+          { label: "Техникалық жүйе", value: audit.internalScore, color: "text-indigo-400", info: "Ішкі сканерлеу алгоритмдеріне негізделген кешенді техникалық бағалау." },
+          { label: "Axe Техникалық", value: audit.axeScore, color: "text-indigo-400", info: "Ахе Core индустриялық стандартына негізделген бағалау (құрылымды тексеру)." },
+          { label: "Lighthouse Веб", value: audit.lighthouseScore || 0, color: "text-amber-400", info: "Базалық тексеруге арналған Google Lighthouse қолжетімділік балдарын модельдеу." },
+          { label: "Контраст деңгейі", value: audit.contrastScore || 0, color: "text-emerald-400", info: "Контраст индексі. WCAG 1.4.3 және 1.4.6 критерийлеріне негізделген (мәтін/фон)." },
+          { label: "Нейрондық семантика", value: audit.aiScore, color: "text-indigo-400", info: "Gemini ЖИ семантикалық бағасы. Сипаттамаларды және контент қисынын талдайды." }
         ].map((item, i) => (
           <motion.div 
             key={item.label}
@@ -234,16 +234,16 @@ export default function AuditResults() {
                 <BrainCircuit className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Neural Insights</h2>
-                <p className="text-[10px] text-[#707AA1] uppercase tracking-[0.2em] font-black">Powered by Gemini 1.5 Dynamic Scanning</p>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Нейрондық түсініктер (Insights)</h2>
+                <p className="text-[10px] text-[#707AA1] uppercase tracking-[0.2em] font-black">Gemini 1.5 динамикалық сканерлеу технологиясы</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                {[
-                 { label: "Semantic Struct", value: audit.aiInsights?.semanticAltQuality || 0, icon: Search },
-                 { label: "Element Clarity", value: audit.aiInsights?.labelClarity || 0, icon: Layout },
-                 { label: "Logic Flow", value: audit.aiInsights?.navigationLogic || 0, icon: Activity }
+                 { label: "Семант. құрылым", value: audit.aiInsights?.semanticAltQuality || 0, icon: Search },
+                 { label: "Элемент анықтығы", value: audit.aiInsights?.labelClarity || 0, icon: Layout },
+                 { label: "Логикалық ағын", value: audit.aiInsights?.navigationLogic || 0, icon: Activity }
                ].map(stat => (
                  <div key={stat.label} className="p-6 bg-[#161B31] rounded-2xl border border-[#2D3558] group hover:border-indigo-500/50 transition-all">
                    <div className="flex items-center gap-2 mb-4 text-[#4F5A85]">
@@ -262,19 +262,19 @@ export default function AuditResults() {
                <div className="space-y-4">
                  <div className="flex items-center gap-3">
                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Regional Protocol (KZ)</span>
+                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Аймақтық хаттама (KZ)</span>
                  </div>
                  <div className="text-sm leading-relaxed text-[#A6AFC9] whitespace-pre-wrap font-medium">
-                   <ReactMarkdown>{audit.aiInsights?.recommendations?.kz || "Awaiting neural synthesis..."}</ReactMarkdown>
+                   <ReactMarkdown>{audit.aiInsights?.recommendations?.kz || "Нейрондық синтез күтілуде..."}</ReactMarkdown>
                  </div>
                </div>
                <div className="space-y-4">
                  <div className="flex items-center gap-3">
                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Operational Guide (RU)</span>
+                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Операциялық нұсқаулық (RU)</span>
                  </div>
                  <div className="text-sm leading-relaxed text-[#A6AFC9] whitespace-pre-wrap font-medium">
-                   <ReactMarkdown>{audit.aiInsights?.recommendations?.ru || "Analysis buffer empty."}</ReactMarkdown>
+                   <ReactMarkdown>{audit.aiInsights?.recommendations?.ru || "Талдау буфері бос."}</ReactMarkdown>
                  </div>
                </div>
             </div>
@@ -282,9 +282,9 @@ export default function AuditResults() {
 
           <section className="glass-card p-8 border-[#2D3558]">
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-[#22293F]">
-              <h2 className="text-2xl font-bold text-white tracking-tight italic">Neural Strategic Synthesis</h2>
+              <h2 className="text-2xl font-bold text-white tracking-tight italic">Нейрондық стратегиялық синтез</h2>
               <span className="px-3 py-1 bg-[#161B31] text-[#707AA1] text-[10px] font-black uppercase tracking-widest rounded border border-[#2D3558]">
-                Intelligence Layer: Active
+                Интеллект деңгейі: Белсенді
               </span>
             </div>
             
@@ -299,18 +299,18 @@ export default function AuditResults() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 bg-amber-500/5 rounded-2xl border border-amber-500/20 shadow-lg shadow-amber-500/5">
-                <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] mb-3">Civilian Impact Matrix</p>
+                <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] mb-3">Қоғамдық әсер ету матрицасы</p>
                 <p className="text-xs text-amber-200/80 leading-relaxed font-medium">
-                  {audit.itaIndex >= 4 ? "Optimal ecosystem compatibility. Broad accessibility confirmed." : 
-                   audit.itaIndex >= 3 ? "Significant navigational friction detected. Some core components non-functional for diverse users." :
-                   "Critical mission failure. Infrastructure structurally inaccessible to diverse user segments."}
+                  {audit.itaIndex >= 4 ? "Экожүйенің оңтайлы үйлесімділігі. Жоғары қолжетімділік расталды." : 
+                   audit.itaIndex >= 3 ? "Навигациялық маңызды қиындықтар анықталды. Негізгі компоненттердің кейбірі кейбір пайдаланушылар үшін жұмыс істемейді." :
+                   "Маңызды бұзушылықтар. Инфрақұрылым пайдаланушылардың әртүрлі санаттары үшін мүлдем қолжетімді емес."}
                 </p>
               </div>
               <div className="p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Architectural Directive</p>
+                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Архитектуралық директива</p>
                 <p className="text-xs text-indigo-200/80 leading-relaxed font-medium">
-                  {audit.itaIndex < 3 ? "Immediate intervention required for P1 structural violations. Foundational stability priority." :
-                   "Iterative refinement of ARIA semantics and contrast indices suggested for AA compliance."}
+                  {audit.itaIndex < 3 ? "P1 деңгейіндегі құрылымдық бұзушылықтарды дереу жою қажет. Базалық тұрақтылықты қалпына келтіру бірінші кезектегі міндет." :
+                   "AA деңгейіне сәйкестігін арттыру үшін ARIA семантикасы мен контраст көрсеткіштерін кезең-кезеңімен жақсарту ұсынылады."}
                 </p>
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function AuditResults() {
           <section className="glass-card p-8 border-[#2D3558]">
             <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-indigo-400" />
-              Multifactor Engine Verification
+              Көпфакторлы қозғалтқышты тексеру
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
@@ -340,22 +340,22 @@ export default function AuditResults() {
           </section>
 
           <section className="glass-card p-8 border-[#2D3558]">
-            <h2 className="text-xl font-bold text-white mb-8">Score Calculation Methodology</h2>
+            <h2 className="text-xl font-bold text-white mb-8">Баллдарды есептеу әдістемесі</h2>
             <div className="space-y-8">
               <div className="p-6 bg-[#161B31] rounded-2xl border border-[#2D3558]">
-                <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">ITA Index Algorithm (v2.2)</h3>
+                <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">ITA индексінің алгоритмі (v2.2)</h3>
                 <div className="p-5 bg-[#0D111D] rounded-xl border border-[#2D3558] mb-6 overflow-x-auto">
-                  <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-widest mb-2">Equation Matrix</p>
+                  <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-widest mb-2">Теңдеу формуласы</p>
                   <code className="text-xl font-mono text-indigo-400 font-bold whitespace-nowrap">
                     ITA = 5.0 - (Σ A × 0.5) - (Σ AA × 0.2) - (Σ AAA × 0.05)
                   </code>
                 </div>
                 <p className="text-sm text-[#A6AFC9] leading-relaxed mb-6 font-medium">
-                  The strategic <strong>ITA Index (1.0 - 5.0)</strong> is synthesized through multidimensional analysis of verified telemetry sources. Level <strong>A</strong> violations are weighted as critical bypass blockers.
+                  Стратегиялық <strong>ITA индексі (1.0 - 5.0)</strong> расталған өлшем деректерді көпөлшемді талдау арқылы жасалады. <strong>A</strong> деңгейіндегі бұзушылықтар маңызды бұғаттаушы фактор ретінде қарастырылады.
                 </p>
                 <div className="flex gap-4">
                    <Link to="/methodology" className="flex items-center gap-3 text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-6 py-3 rounded-xl border border-indigo-500/20 hover:bg-indigo-500/20 transition-all">
-                     <Calculator className="w-4 h-4" /> Comprehensive Methodology
+                     <Calculator className="w-4 h-4" /> Толық әдістеме
                    </Link>
                 </div>
               </div>
@@ -385,7 +385,7 @@ export default function AuditResults() {
 
           <section className="space-y-6">
             <h2 className="text-2xl font-black text-white mb-8 flex items-center gap-3">
-              Detected Anomalies
+              Анықталған ауытқулар
               <span className="px-3 py-0.5 bg-[#161B31] text-indigo-400 rounded-full text-xs font-black shadow-[0_0_10px_rgba(79,70,229,0.2)] border border-indigo-500/20">{issues.length}</span>
             </h2>
             
@@ -431,7 +431,7 @@ export default function AuditResults() {
 
                   <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-6">
                     <div className="md:col-span-3 p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Remediation Directive</p>
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Түзету директивасы</p>
                       <p className="text-sm text-[#A6AFC9] leading-relaxed font-medium">{issue.recommendation}</p>
                     </div>
                     <div className="flex justify-end pt-2">
@@ -463,7 +463,7 @@ export default function AuditResults() {
                 audit.maturityLevel === "Defined" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                 "bg-[#161B31] text-[#707AA1] border-[#2D3558]"
               )}>
-                {audit.maturityLevel || "Registry Phase"}
+                {audit.maturityLevel || "Тіркеу кезеңі"}
               </div>
             </div>
             <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.3em] mb-6">Strategic ITA Index</p>
@@ -474,11 +474,11 @@ export default function AuditResults() {
             <div className="mb-6 flex justify-center">
               {audit.manualReviewCompleted ? (
                 <div className="inline-flex items-center gap-3 px-5 py-2 bg-emerald-500/10 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-                  <ShieldCheck className="w-4 h-4 shadow-sm" /> Authorized Verification
+                  <ShieldCheck className="w-4 h-4 shadow-sm" /> Бекітілген тексеру
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-3 px-5 py-2 bg-amber-500/10 text-amber-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4" /> Preliminary Scan
+                  <AlertCircle className="w-4 h-4" /> Бастапқы сканерлеу
                 </div>
               )}
             </div>
@@ -495,7 +495,7 @@ export default function AuditResults() {
             )}
 
             <div className="mt-10 pt-10 border-t border-[#22293F]">
-              <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.3em] mb-8 text-center">Neural POUR Diagnostics</p>
+              <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.3em] mb-8 text-center">Нейрондық POUR диагностикасы</p>
               <div className="space-y-6">
                 {Object.entries(audit.pourScores || {}).map(([key, val]) => (
                   <div key={key} className="bg-[#161B31] p-5 rounded-2xl border border-[#2D3558] group hover:border-indigo-500/30 transition-all">
@@ -520,7 +520,7 @@ export default function AuditResults() {
           </div>
 
           <div className="glass-card p-8 border-[#2D3558]">
-            <h3 className="text-lg font-bold text-white mb-8">Structural Breakdown</h3>
+            <h3 className="text-lg font-bold text-white mb-8">Құрылымдық талдау</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-rose-500/5 p-4 rounded-2xl text-center border border-rose-500/10">
                 <p className="text-[10px] font-black text-rose-400 uppercase mb-2">Level A</p>
@@ -538,23 +538,23 @@ export default function AuditResults() {
           </div>
 
           <div className="glass-card p-8 border-[#2D3558]">
-            <h3 className="text-lg font-bold text-white mb-6">Target Parameters</h3>
+            <h3 className="text-lg font-bold text-white mb-6">Нысаналы параметрлер</h3>
             <div className="space-y-6">
               <div>
-                <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Access Point (URL)</p>
+                <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Қол жеткізу нүктесі (URL)</p>
                 <a href={site.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-2 break-all transition-colors underline underline-offset-4 decoration-indigo-500/30">
                   {site.url} <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
               <div className="grid grid-cols-2 gap-6 pt-4 border-t border-[#22293F]">
                 <div>
-                  <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Classification</p>
+                  <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Санат сыныптамасы</p>
                   <p className="text-sm text-white font-black tracking-tight uppercase">
                     {site.category || "General"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Protocol Rev</p>
+                  <p className="text-[9px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Протокол нұсқасы</p>
                   <p className="text-sm text-white font-black tracking-tight uppercase">WCAG 2.2 AA</p>
                 </div>
               </div>

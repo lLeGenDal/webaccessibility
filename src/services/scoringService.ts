@@ -35,7 +35,10 @@ export function calculateInternalAssessment(issues: Issue[]): InternalScoreResul
 
   // 3. Contrast Score
   const contrastIssues = confirmed.filter(i => 
-    i.criterion === "1.4.3" || i.criterion === "1.4.6" || i.description.toLowerCase().includes("контраст")
+    i.criterion === "1.4.3" || i.criterion === "1.4.6" || 
+    i.description.toLowerCase().includes("контраст") || 
+    i.description.toLowerCase().includes("contrast") ||
+    i.description.toLowerCase().includes("контрастты")
   );
   let contrastScore = 100 - (contrastIssues.length * 10);
   contrastScore = Math.max(0, contrastScore);
@@ -72,9 +75,9 @@ export function calculateInternalAssessment(issues: Issue[]): InternalScoreResul
   };
 
   const summary = `
-    Внутренняя система оценки: ${internalScore}/100.
-    Обнаружено: ${countA} критических барьеров (Level A), ${countAA} ограничений (Level AA) и ${countAAA} рекомендаций (Level AAA).
-    Индекс ITA составляет ${itaIndex}, что соответствует уровню зрелости «${maturityLevel}».
+    Ішкі бағалау жүйесі: ${internalScore}/100.
+    Анықталды: ${countA} маңызды бөгеттер (Level A), ${countAA} шектеулер (Level AA) және ${countAAA} ұсыныстар (Level AAA).
+    ITA индексі ${itaIndex} құрайды, бұл «${maturityLevel}» кемелдік деңгейіне сәйкес келеді.
   `;
 
   return {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../App";
+import { useLanguage } from "../LanguageContext";
 import { Site, Audit } from "../types";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -71,6 +72,7 @@ const RadialMetric = ({ name, value, color }: any) => (
 
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const { t, language } = useLanguage();
   const [sites, setSites] = useState<Site[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +152,9 @@ export default function Dashboard() {
   if (loading) return (
     <div className="min-h-[400px] flex flex-col items-center justify-center gap-6">
       <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">Syncing System</p>
+      <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">
+        {language === "kk" ? "Жүйе үндестірілуде" : "Синхронизация системы"}
+      </p>
     </div>
   );
 
@@ -165,16 +169,20 @@ export default function Dashboard() {
           <div className="w-24 h-24 bg-[#161B31] rounded-3xl flex items-center justify-center mx-auto mb-8 border border-[#2D3558]">
             <Globe className="w-10 h-10 text-[#4F5A85]" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4">No Organizations Found</h2>
+          <h2 className="text-3xl font-black text-white mb-4">
+            {language === "kk" ? "Ұйымдар табылмады" : "Организации не найдены"}
+          </h2>
           <p className="text-[#707AA1] max-w-md mx-auto mb-10 text-lg font-medium">
-            Start by adding your first organization to perform accessibility audits.
+            {language === "kk" 
+              ? "Қолжетімділік аудитін жүргізу үшін алдымен бірінші ұйымыңызды қосыңыз." 
+              : "Для запуска аудита доступности сначала добавьте свою первую организацию."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
               to="/sites" 
               className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
             >
-              Add New Organization
+              {t("sites.addBtn")}
             </Link>
           </div>
         </motion.div>
@@ -184,12 +192,14 @@ export default function Dashboard() {
         <>
           <header className="flex items-end justify-between border-b border-[#22293F] pb-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {profile?.displayName?.split(' ')[0]}</h1>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">
+            {t("dash.welcome")}, {profile?.displayName?.split(' ')[0]}
+          </h1>
         </div>
         <div className="flex gap-4">
           <Link to="/audit/new" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-[0_5px_20px_rgba(79,70,229,0.3)] flex items-center gap-3 active:scale-95">
              <ClipboardCheck className="w-5 h-5" />
-             New Scan
+             {t("dash.newAuditBtn")}
           </Link>
         </div>
       </header>
@@ -198,13 +208,17 @@ export default function Dashboard() {
         {/* Metric Cards Row */}
         <div className="lg:col-span-3 glass-card p-8 flex flex-col justify-between">
           <div>
-            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">AVG. Index Score</p>
+            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">
+              {language === "kk" ? "ОРТАША ИНДЕКС КӨРСЕТКІШІ" : "СРЕДНИЙ ПОКАЗАТЕЛЬ ИНДЕКСА"}
+            </p>
             <div className="flex items-center gap-3">
               <span className="text-5xl font-black text-white">{avgIta}</span>
             </div>
           </div>
           <div className="mt-8">
-            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">Digital Pulse</p>
+            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">
+              {language === "kk" ? "ЦИФРЛЫҚ ПУЛЬС" : "ЦИФРОВОЙ ПУЛЬС"}
+            </p>
             <div className="h-12 w-full bg-indigo-500/10 rounded-xl overflow-hidden relative border border-indigo-500/20">
                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-600 to-purple-600 shadow-[0_0_20px_rgba(79,70,229,0.5)]" style={{ width: `${parseFloat(avgIta) * 10}%` }}></div>
             </div>
@@ -213,17 +227,19 @@ export default function Dashboard() {
 
         <div className="lg:col-span-5 glass-card p-8">
           <div className="flex items-center justify-around h-full">
-            <RadialMetric name="Perceivable" value={avgPOUR.perceivable} color="#6366f1" />
-            <RadialMetric name="Operable" value={avgPOUR.operable} color="#22d3ee" />
-            <RadialMetric name="Robust" value={avgPOUR.robust} color="#e879f9" />
+            <RadialMetric name={language === "kk" ? "Қабылдануы" : "Воспринимаемость"} value={avgPOUR.perceivable} color="#6366f1" />
+            <RadialMetric name={language === "kk" ? "Басқарылуы" : "Управляемость"} value={avgPOUR.operable} color="#22d3ee" />
+            <RadialMetric name={language === "kk" ? "Тұрақтылығы" : "Надежность"} value={avgPOUR.robust} color="#e879f9" />
           </div>
         </div>
 
         <div className="lg:col-span-2 glass-card p-8 flex flex-col justify-between group cursor-pointer hover:bg-[#232A42] transition-colors">
           <div>
-            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">Total Inventory</p>
+            <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-4">
+              {language === "kk" ? "ЖАЛПЫ САНЫ" : "ОБЩЕЕ КОЛИЧЕСТВО"}
+            </p>
             <span className="text-3xl font-black text-white">{sites.length}</span>
-            <p className="text-[10px] text-indigo-400 mt-1 font-bold">Organizations</p>
+            <p className="text-[10px] text-indigo-400 mt-1 font-bold">{t("nav.sites")}</p>
           </div>
           <div className="w-full h-1 bg-[#2D3558] rounded-full overflow-hidden">
             <div className="h-full bg-indigo-500 w-2/3"></div>
@@ -232,7 +248,9 @@ export default function Dashboard() {
 
         <div className="lg:col-span-2 glass-card p-0 overflow-hidden group">
           <div className="p-8 pb-0">
-             <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-2">Success Rate</p>
+             <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em] mb-2">
+               {language === "kk" ? "ЖЕТІСТІК ДЕҢГЕЙІ" : "УРОВЕНЬ ДОСТИЖЕНИЙ"}
+             </p>
              <span className="text-3xl font-black text-white">84.2%</span>
           </div>
           <div className="h-24 w-full mt-auto">
@@ -254,17 +272,25 @@ export default function Dashboard() {
         <div className="lg:col-span-8 glass-card p-10 relative overflow-hidden">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <h3 className="text-xl font-bold text-white tracking-tight">Accessibility Velocity</h3>
-              <p className="text-[#707AA1] text-xs font-medium mt-1">Cross-platform ecosystem audit progress</p>
+              <h3 className="text-xl font-bold text-white tracking-tight">
+                {language === "kk" ? "Қолжетімділік қарқыны" : "Динамика доступности"}
+              </h3>
+              <p className="text-[#707AA1] text-xs font-medium mt-1">
+                {language === "kk" ? "Көпплатформалы экожүйе заңдылығының барысы" : "Ход развития мультиплатформенной экосистемы"}
+              </p>
             </div>
             <div className="flex items-center gap-6">
                <div className="flex items-center gap-2">
                  <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                 <span className="text-[10px] font-black text-[#707AA1] uppercase">Compliance</span>
+                 <span className="text-[10px] font-black text-[#707AA1] uppercase">
+                   {language === "kk" ? "Сәйкестік" : "Соответствие"}
+                 </span>
                </div>
                <div className="flex items-center gap-2">
                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                 <span className="text-[10px] font-black text-[#707AA1] uppercase">AI Confidence</span>
+                 <span className="text-[10px] font-black text-[#707AA1] uppercase">
+                   {language === "kk" ? "ЖИ Сенімділігі" : "Доверие ИИ"}
+                 </span>
                </div>
             </div>
           </div>
@@ -302,7 +328,9 @@ export default function Dashboard() {
 
         <div className="lg:col-span-4 glass-card p-8">
            <div className="flex items-center justify-between mb-10">
-             <h3 className="text-xl font-bold text-white tracking-tight">Top Performance</h3>
+             <h3 className="text-xl font-bold text-white tracking-tight">
+               {language === "kk" ? "Үздік нәтижелер" : "Лучшие результаты"}
+             </h3>
              <button className="text-[#707AA1] hover:text-white transition-colors">
                <ArrowUpRight className="w-5 h-5" />
              </button>
@@ -318,7 +346,9 @@ export default function Dashboard() {
                     <div className="flex-1">
                        <div className="flex items-center justify-between">
                           <span className="text-sm font-bold text-white truncate max-w-[140px]">{audit.siteName}</span>
-                          <span className="text-xs font-black text-indigo-400">Idx: {audit.itaIndex}</span>
+                          <span className="text-xs font-black text-indigo-400">
+                            {language === "kk" ? "Инд" : "Инд"}: {audit.itaIndex}
+                          </span>
                        </div>
                        <div className="w-full h-1.5 bg-[#2D3558] rounded-full mt-2 overflow-hidden">
                           <motion.div 
@@ -334,7 +364,7 @@ export default function Dashboard() {
               ))}
               
               <Link to="/audits" className="block w-full py-4 glass-card bg-[#232A42] border-[#2D3558] text-center text-sm font-bold text-white hover:bg-[#2D3558] transition-all rounded-2xl">
-                View All Audits
+                {language === "kk" ? "Барлық аудиттерді көру" : "Посмотреть все аудиты"}
               </Link>
            </div>
         </div>
@@ -342,8 +372,12 @@ export default function Dashboard() {
         {/* Bottom Section */}
         <div className="lg:col-span-4 glass-card p-10 flex flex-col justify-between">
            <div>
-             <h3 className="text-xl font-bold text-white tracking-tight mb-2">Audit Distribution</h3>
-             <p className="text-[#707AA1] text-xs font-medium">Monthly regional activity</p>
+             <h3 className="text-xl font-bold text-white tracking-tight mb-2">
+               {language === "kk" ? "Аудиттердің бөлінуі" : "Распределение аудитов"}
+             </h3>
+             <p className="text-[#707AA1] text-xs font-medium">
+               {language === "kk" ? "Аймақтық айлық белсенділік" : "Региональная месячная активность"}
+             </p>
            </div>
            
            <div className="h-[200px] mt-10">
@@ -369,23 +403,31 @@ export default function Dashboard() {
 
         <div className="lg:col-span-8 glass-card p-10">
            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-white tracking-tight">System Status</h3>
+              <h3 className="text-xl font-bold text-white tracking-tight">
+                {language === "kk" ? "Жүйелік статус" : "Системный статус"}
+              </h3>
               <div className="px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-wider rounded-lg border border-green-500/20">
-                All Systems Operational
+                {language === "kk" ? "Барлық жүйелер қалыпты жұмыс істеуде" : "Все системы функционируют в норме"}
               </div>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="p-6 bg-[#161B31] rounded-2xl border border-[#2D3558]">
-                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">WCAG Coverage</span>
-                 <p className="text-2xl font-bold text-white mt-2">2.2 Level AA</p>
+                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">
+                   {language === "kk" ? "WCAG Қамтылуы" : "Покрытие WCAG"}
+                 </span>
+                 <p className="text-2xl font-bold text-white mt-2">2.2 AA {language === "kk" ? "Деңгейі" : "Уровень"}</p>
               </div>
               <div className="p-6 bg-[#161B31] rounded-2xl border border-[#2D3558]">
-                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Scan Latency</span>
-                 <p className="text-2xl font-bold text-white mt-2">~42s / site</p>
+                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">
+                   {language === "kk" ? "Сканерлеу кідірісі" : "Задержка сканирования"}
+                 </span>
+                 <p className="text-2xl font-bold text-white mt-2">~42с / {language === "kk" ? "сайт" : "сайт"}</p>
               </div>
               <div className="p-6 bg-[#161B31] rounded-2xl border border-[#2D3558]">
-                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">Core Engines</span>
-                 <p className="text-2xl font-bold text-white mt-2">v3.5.0-AI</p>
+                 <span className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.2em]">
+                   {language === "kk" ? "Негізгі қозғалтқыштар" : "Главные движки"}
+                 </span>
+                 <p className="text-2xl font-bold text-white mt-2">v3.5.0-ЖИ</p>
               </div>
            </div>
         </div>

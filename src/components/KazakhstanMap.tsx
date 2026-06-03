@@ -14,26 +14,26 @@ interface RegionData {
 
 // Optimized Kazakhstan Regions SVG Paths
 const REGIONS: RegionData[] = [
-  { id: "WKO", name: "Западно-Казахстанская область", path: "M 32,176 L 105,123 L 157,171 L 118,228 L 51,215 Z" },
-  { id: "ATY", name: "Атырауская область", path: "M 40,220 L 115,232 L 135,275 L 75,305 L 35,265 Z" },
-  { id: "MAN", name: "Мангистауская область", path: "M 75,310 L 140,280 L 165,355 L 105,425 L 55,385 Z" },
-  { id: "AKT", name: "Актюбинская область", path: "M 118,232 L 162,174 L 255,145 L 285,255 L 215,315 L 125,235 Z" },
-  { id: "KOS", name: "Костанайская область", path: "M 258,55 L 355,85 L 325,215 L 260,235 L 258,145 Z" },
-  { id: "ULY", name: "Улытауская область", path: "M 265,240 L 400,225 L 420,315 L 300,345 L 290,260 Z" },
-  { id: "KZO", name: "Кызылординская область", path: "M 220,320 L 295,350 L 355,415 L 255,445 Z" },
-  { id: "SKO", name: "Северо-Казахстанская область", path: "M 360,35 L 425,45 L 415,90 L 360,85 Z" },
-  { id: "AKM", name: "Акмолинская область", path: "M 360,90 L 445,95 L 455,175 L 330,210 Z" },
-  { id: "AST", name: "г. Астана", cx: 405, cy: 135, path: "" },
-  { id: "KAR", name: "Карагандинская область", path: "M 405,225 L 545,215 L 575,345 L 420,355 Z" },
-  { id: "TUR", name: "Туркестанская область", path: "M 360,420 L 445,415 L 465,475 L 375,485 Z" },
-  { id: "SHY", name: "г. Шымкент", cx: 415, cy: 455, path: "" },
-  { id: "JAM", name: "Жамбылская область", path: "M 450,410 L 525,395 L 535,455 L 470,470 Z" },
-  { id: "ALM", name: "Алматинская область", path: "M 540,375 L 605,380 L 610,445 L 540,450 Z" },
-  { id: "JET", name: "Жетысуская область", path: "M 550,265 L 665,275 L 645,375 L 540,370 Z" },
-  { id: "ALA", name: "г. Алматы", cx: 585, cy: 415, path: "" },
-  { id: "ABA", name: "Абайская область", path: "M 600,165 L 725,190 L 675,305 L 585,295 Z" },
-  { id: "VKO", name: "Восточно-Казахстанская область", path: "M 695,195 L 760,215 L 735,295 L 680,300 Z" },
-  { id: "PAV", name: "Павлодарская область", path: "M 460,80 L 595,100 L 590,195 L 460,170 Z" }
+  { id: "WKO", name: "Батыс Қазақстан облысы", path: "M 32,176 L 105,123 L 157,171 L 118,228 L 51,215 Z" },
+  { id: "ATY", name: "Атырау облысы", path: "M 40,220 L 115,232 L 135,275 L 75,305 L 35,265 Z" },
+  { id: "MAN", name: "Маңғыстау облысы", path: "M 75,310 L 140,280 L 165,355 L 105,425 L 55,385 Z" },
+  { id: "AKT", name: "Ақтөбе облысы", path: "M 118,232 L 162,174 L 255,145 L 285,255 L 215,315 L 125,235 Z" },
+  { id: "KOS", name: "Қостанай облысы", path: "M 258,55 L 355,85 L 325,215 L 260,235 L 258,145 Z" },
+  { id: "ULY", name: "Ұлытау облысы", path: "M 265,240 L 400,225 L 420,315 L 300,345 L 290,260 Z" },
+  { id: "KZO", name: "Қызылорда облысы", path: "M 220,320 L 295,350 L 355,415 L 255,445 Z" },
+  { id: "SKO", name: "Солтүстік Қазақстан облысы", path: "M 360,35 L 425,45 L 415,90 L 360,85 Z" },
+  { id: "AKM", name: "Ақмола облысы", path: "M 360,90 L 445,95 L 455,175 L 330,210 Z" },
+  { id: "AST", name: "Астана қ.", cx: 405, cy: 135, path: "" },
+  { id: "KAR", name: "Қарағанды облысы", path: "M 405,225 L 545,215 L 575,345 L 420,355 Z" },
+  { id: "TUR", name: "Түркістан облысы", path: "M 360,420 L 445,415 L 465,475 L 375,485 Z" },
+  { id: "SHY", name: "Шымкент қ.", cx: 415, cy: 455, path: "" },
+  { id: "JAM", name: "Жамбыл облысы", path: "M 450,410 L 525,395 L 535,455 L 470,470 Z" },
+  { id: "ALM", name: "Алматы облысы", path: "M 540,375 L 605,380 L 610,445 L 540,450 Z" },
+  { id: "JET", name: "Жетісу облысы", path: "M 550,265 L 665,275 L 645,375 L 540,370 Z" },
+  { id: "ALA", name: "Алматы қ.", cx: 585, cy: 415, path: "" },
+  { id: "ABA", name: "Абай облысы", path: "M 600,165 L 725,190 L 675,305 L 585,295 Z" },
+  { id: "VKO", name: "Шығыс Қазақстан облысы", path: "M 695,195 L 760,215 L 735,295 L 680,300 Z" },
+  { id: "PAV", name: "Павлодар облысы", path: "M 460,80 L 595,100 L 590,195 L 460,170 Z" }
 ];
 
 interface Props {
@@ -77,12 +77,12 @@ export default function KazakhstanMap({ sites, audits }: Props) {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <MapIcon className="w-5 h-5 text-indigo-600" />
-              Карта цифровой доступности Казахстана
+              Қазақстанның цифрлық қолжетімділік картасы
             </h2>
             <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              <span>Привязанных сайтов: {sites.filter(s => s.region).length}</span>
+              <span>Тіркелген сайттар: {sites.filter(s => s.region).length}</span>
               <span className="text-gray-200">|</span>
-              <span>Всего аудитов: {audits.length}</span>
+              <span>Барлық аудиттер: {audits.length}</span>
             </div>
           </div>
           
@@ -124,19 +124,19 @@ export default function KazakhstanMap({ sites, audits }: Props) {
             <div className="absolute bottom-4 right-4 flex flex-col gap-2 bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-gray-100 text-[10px] font-bold">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                <span>Оптимизированный (4.0+)</span>
+                <span>Оңтайландырылған (4.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-indigo-500 rounded-full" />
-                <span>Интегрированный (3.0+)</span>
+                <span>Интеграцияланған (3.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-amber-500 rounded-full" />
-                <span>Начальный (2.0+)</span>
+                <span>Бастапқы (2.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-rose-500 rounded-full" />
-                <span>Критический (‹2.0)</span>
+                <span>Критикалық (‹2.0)</span>
               </div>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function KazakhstanMap({ sites, audits }: Props) {
 
         <div className="w-full lg:w-80 flex flex-col gap-4">
           <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-100">
-            <h3 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4">Статистика региона</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4">Аймақ статистикасы</h3>
             {activeRegion ? (
               <motion.div 
                 key={activeRegion.id}
@@ -154,18 +154,18 @@ export default function KazakhstanMap({ sites, audits }: Props) {
                 <p className="text-xl font-black mb-6 leading-tight">{activeRegion.name}</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[10px] font-bold uppercase opacity-60">Ср. Индекс ITA</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Орташа ITA индексі</p>
                     <p className="text-2xl font-black">{activeRegion.avgIta || "—"}</p>
                   </div>
                   <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[10px] font-bold uppercase opacity-60">Сайтов</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Сайттар</p>
                     <p className="text-2xl font-black">{activeRegion.count}</p>
                   </div>
                 </div>
                 <div className="mt-4 bg-white/10 p-4 rounded-2xl flex items-center gap-3">
                   <BarChart3 className="w-5 h-5 opacity-60" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase opacity-60">Аудитов проведено</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Өткізілген аудиттер</p>
                     <p className="text-lg font-bold">{activeRegion.auditCount}</p>
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export default function KazakhstanMap({ sites, audits }: Props) {
             ) : (
               <div className="h-40 flex flex-col items-center justify-center text-center opacity-60">
                 <Info className="w-8 h-8 mb-2" />
-                <p className="text-sm">Наведите на регион для просмотра деталей</p>
+                <p className="text-sm">Мәліметтерді көру үшін аймаққа меңзерді апарыңыз</p>
               </div>
             )}
           </div>
@@ -181,7 +181,7 @@ export default function KazakhstanMap({ sites, audits }: Props) {
           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex-1 overflow-y-auto max-h-[300px]">
              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                <Users className="w-4 h-4" />
-               Топ регионов
+               Үздік аймақтар
              </h3>
              <div className="space-y-3">
                {regionStats
@@ -204,7 +204,7 @@ export default function KazakhstanMap({ sites, audits }: Props) {
                  ))
                }
                {regionStats.filter(r => r.count > 0).length === 0 && (
-                 <p className="text-center text-xs text-gray-400 mt-10">Нет данных для рейтинга</p>
+                 <p className="text-center text-xs text-gray-400 mt-10">Рейтинг үшін деректер жоқ</p>
                )}
              </div>
           </div>
