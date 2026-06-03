@@ -176,10 +176,14 @@ export default function SiteList() {
     </select>
   );
 
-  const filteredSites = sites.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.url.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSites = sites.filter(s => {
+    const term = searchTerm.toLowerCase().trim();
+    return !term ||
+      s.name.toLowerCase().includes(term) || 
+      s.url.toLowerCase().includes(term) ||
+      s.region.toLowerCase().includes(term) ||
+      s.category.toLowerCase().includes(term);
+  });
 
   if (loading) return (
     <div className="min-h-[400px] flex flex-col items-center justify-center gap-6">

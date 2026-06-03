@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Fuse from "fuse.js";
 import { useAuth } from "../App";
 import { Site, Issue, Audit } from "../types";
 import { useNavigate } from "react-router-dom";
@@ -20,11 +21,57 @@ export default function AuditForm() {
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [siteFilter, setSiteFilter] = useState("");
+  const [debouncedFilter, setDebouncedFilter] = useState("");
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditStep, setAuditStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [manualHtml, setManualHtml] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
+
+  // Debounce organization search filter
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFilter(siteFilter);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [siteFilter]);
+
+  // Configure Fuse.js fuzzy index
+  const fuse = useMemo(() => {
+    return new Fuse<Site>(sites, {
+      keys: [
+        { name: "name", weight: 0.5 },
+        { name: "url", weight: 0.3 },
+        { name: "region", weight: 0.1 },
+        { name: "category", weight: 0.1 }
+      ],
+      threshold: 0.4,
+      ignoreLocation: true
+    });
+  }, [sites]);
+
+  // Compute fuzzy search matches
+  const filteredSites = useMemo(() => {
+    const f = debouncedFilter.trim();
+    let results: Site[] = [];
+    if (!f) {
+      results = sites;
+    } else {
+      results = fuse.search(f).map(result => result.item);
+    }
+
+    // Always include currently selected site to preserve form state if query filters it out
+    if (selectedSiteId) {
+      const selectedSite = sites.find(s => s.id === selectedSiteId);
+      if (selectedSite && !results.some(s => s.id === selectedSiteId)) {
+        results = [selectedSite, ...results];
+      }
+    }
+    return results;
+  }, [debouncedFilter, sites, fuse, selectedSiteId]);
 
   const focusManualInput = () => {
     setTimeout(() => {
@@ -255,12 +302,9 @@ export default function AuditForm() {
                   className="w-full pl-12 pr-6 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
                 >
                   <option value="">Ұйымдық нысанды таңдаңыз...</option>
-                  {sites
-                    .filter(s => s.name.toLowerCase().includes(siteFilter.toLowerCase()))
-                    .map((site, index) => (
-                      <option key={`${site.id}-${index}`} value={site.id}>{site.name} {site.url ? `(${site.url.replace(/^https?:\/\//, '')})` : ""}</option>
-                    ))
-                  }
+                  {filteredSites.map((site, index) => (
+                    <option key={`${site.id}-${index}`} value={site.id}>{site.name} {site.url ? `(${site.url.replace(/^https?:\/\//, '')})` : ""}</option>
+                  ))}
                 </select>
               </div>
             </div>
