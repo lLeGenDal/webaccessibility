@@ -12,30 +12,11 @@ import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 import { Link } from "react-router-dom";
 import { apiService } from "../services/apiService";
+import { normalizeToKzRegion } from "../constants";
 import KazakhstanMap from "./KazakhstanMap";
 
 const inferRegion = (name: string): string => {
-  const n = name.toLocaleLowerCase();
-  if (n.includes("астана") || n.includes("astana")) return "г. Астана";
-  if (n.includes("алматы") || n.includes("almaty")) return "г. Алматы";
-  if (n.includes("шымкент") || n.includes("shymkent")) return "г. Шымкент";
-  if (n.includes("караганд") || n.includes("karagand")) return "Карагандинская область";
-  if (n.includes("акмолин") || n.includes("akmolin")) return "Акмолинская область";
-  if (n.includes("атырау") || n.includes("atyrau")) return "Атырауская область";
-  if (n.includes("актобе") || n.includes("aktobe")) return "Актюбинская область";
-  if (n.includes("костанай") || n.includes("kostanay")) return "Костанайская область";
-  if (n.includes("павлодар") || n.includes("pavlodar")) return "Павлодарская область";
-  if (n.includes("мангистау") || n.includes("mangistau") || n.includes("актау")) return "Мангистауская область";
-  if (n.includes("кызылорд") || n.includes("kyzylord")) return "Кызылординская область";
-  if (n.includes("жамбыл") || n.includes("zhambyl") || n.includes("тараз")) return "Жамбылская область";
-  if (n.includes("туркестан") || n.includes("turkestan")) return "Туркестанская область";
-  if (n.includes("северо-казах") || n.includes("петропавл")) return "Северо-Казахстанская область";
-  if (n.includes("западно-казах") || n.includes("уральск")) return "Западно-Казахстанская область";
-  if (n.includes("восточно-казах") || n.includes("усть-камен")) return "Восточно-Казахстанская область";
-  if (n.includes("абай") || n.includes("семей")) return "Абайская область";
-  if (n.includes("жетысу") || n.includes("талдыкорг")) return "Жетысуская область";
-  if (n.includes("улытау") || n.includes("жезказган")) return "Улытауская область";
-  return "";
+  return normalizeToKzRegion(name);
 };
 
 const RadialMetric = ({ name, value, color }: any) => (

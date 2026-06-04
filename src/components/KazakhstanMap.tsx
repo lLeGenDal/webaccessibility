@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Site, Audit } from "../types";
 import { cn } from "../lib/utils";
 import { Info, Map as MapIcon, BarChart3, Users } from "lucide-react";
+import { normalizeToKzRegion } from "../constants";
 
 interface RegionData {
   id: string;
@@ -45,7 +46,7 @@ export default function KazakhstanMap({ sites, audits }: Props) {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   const regionStats = REGIONS.map(region => {
-    const regionSites = sites.filter(s => s.region === region.name);
+    const regionSites = sites.filter(s => normalizeToKzRegion(s.region) === region.name);
     const regionAudits = audits.filter(a => regionSites.some(s => s.id === a.siteId));
     
     const avgIta = regionAudits.length > 0 

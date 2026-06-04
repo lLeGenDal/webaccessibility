@@ -300,7 +300,7 @@ const ORG_PRESETS: OrgPreset[] = [
     category: "University"
   },
   {
-    aliases: ["casu", "касу", "американский"],
+    aliases: ["casu", "касу", "американский", "kafu", "кафу", "kasu", "kacu", "kazu", "касувко", "кафувко", "kauf", "кауф", "өскемен", "усть-каменогорск"],
     fullName: "Казахстанско-Американский свободный университет (КАСУ)",
     url: "https://casu.edu.kz",
     region: "Шығыс Қазақстан облысы",
@@ -392,21 +392,6 @@ const ORG_PRESETS: OrgPreset[] = [
   }
 ];
 
-const findPreset = (orgName: string): OrgPreset | null => {
-  const name = orgName.toLowerCase().trim();
-  if (name.length < 2) return null;
-  // 1. Direct match on aliases
-  const directMatch = ORG_PRESETS.find(p => p.aliases.includes(name));
-  if (directMatch) return directMatch;
-  // 2. Name contains alias (e.g. "Назарбаев Университет" contains "назарбаев")
-  const containsMatch = ORG_PRESETS.find(p => p.aliases.some(alias => name.includes(alias)));
-  if (containsMatch) return containsMatch;
-  // 3. Alias contains name (e.g. "назарб" is part of "назарбаев")
-  const partMatch = ORG_PRESETS.find(p => p.aliases.some(alias => alias.includes(name)));
-  if (partMatch) return partMatch;
-  return null;
-};
-
 const transliteCyrillic = (txt: string): string => {
   const cyrToLat: Record<string, string> = {
     'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
@@ -418,6 +403,58 @@ const transliteCyrillic = (txt: string): string => {
   return txt.replace(/[а-яА-ЯёЁәӘғҒқҚңҢөӨұҰүҮіІһҺ]/g, (char) => {
     return cyrToLat[char.toLowerCase()] || '';
   });
+};
+
+const findPreset = (orgName: string): OrgPreset | null => {
+  const name = orgName.toLowerCase().trim();
+  if (name.length < 2) return null;
+
+  // Standardize common lookalikes (homoglyphs) to Latin
+  const homoglyphReplacer = (s: string) => {
+    return s
+      .replace(/с/g, "s")   // Cyrillic 'с' to 's'
+      .replace(/c/g, "s")   // Latin 'c' to 's'
+      .replace(/к/g, "k")   // Cyrillic 'к' to 'k'
+      .replace(/а/g, "a")   // Cyrillic 'а' to 'a'
+      .replace(/у/g, "u")   // Cyrillic 'у' to 'u'
+      .replace(/ф/g, "f")   // Cyrillic 'ф' to 'f'
+      .replace(/е/g, "e")   // Cyrillic 'е' to 'e'
+      .replace(/о/g, "o")   // Cyrillic 'о' to 'o'
+      .replace(/р/g, "r")   // Cyrillic 'р' to 'r'
+      .replace(/и/g, "i")   // Cyrillic 'и' to 'i'
+      .replace(/і/g, "i")   // Cyrillic 'і' to 'i'
+      .replace(/[^a-z0-9]/g, ""); // strip non-alphas
+  };
+
+  const normalizedInput = homoglyphReplacer(name);
+  const normalizedInputTranslit = homoglyphReplacer(transliteCyrillic(name));
+
+  // 1. Check exact matches on normalized forms
+  for (const preset of ORG_PRESETS) {
+    for (const alias of preset.aliases) {
+      const normAlias = homoglyphReplacer(alias);
+      if (normAlias === normalizedInput || normAlias === normalizedInputTranslit || normAlias === name) {
+        return preset;
+      }
+    }
+  }
+
+  // 2. Fallback to contains-checks on normalized forms for multi-word queries like "Касу усть-каменогорск"
+  for (const preset of ORG_PRESETS) {
+    for (const alias of preset.aliases) {
+      const normAlias = homoglyphReplacer(alias);
+      if (
+        normAlias.length >= 2 && 
+        (normalizedInput.includes(normAlias) || 
+         normalizedInputTranslit.includes(normAlias) || 
+         normAlias.includes(normalizedInput))
+      ) {
+        return preset;
+      }
+    }
+  }
+
+  return null;
 };
 
 const fallbackSuggestUrl = (orgName: string): string => {
@@ -838,6 +875,12 @@ apiRouter.post("/gemini/final-synthesis", async (req, res) => {
 apiRouter.post("/gemini/suggest-url", async (req, res) => {
   const { orgName } = req.body;
   if (!orgName) return res.status(400).json({ error: "Missing orgName parameter" });
+
+  const preset = findPreset(orgName);
+  if (preset) {
+    return res.json({ url: preset.url });
+  }
+
   if (isGeminiBroken) {
     return res.json({ url: fallbackSuggestUrl(orgName) });
   }
@@ -866,6 +909,12 @@ apiRouter.post("/gemini/suggest-url", async (req, res) => {
 apiRouter.post("/gemini/suggest-region", async (req, res) => {
   const { orgName } = req.body;
   if (!orgName) return res.status(400).json({ error: "Missing orgName parameter" });
+
+  const preset = findPreset(orgName);
+  if (preset) {
+    return res.json({ region: preset.region });
+  }
+
   if (isGeminiBroken) {
     return res.json({ region: fallbackSuggestRegion(orgName) });
   }
@@ -889,7 +938,7 @@ apiRouter.post("/gemini/suggest-region", async (req, res) => {
     if (region.toLowerCase() === "null") {
       return res.json({ region: fallbackSuggestRegion(orgName) });
     }
-    res.json({ region });
+    res.json({ region: fallbackSuggestRegion(region) });
   } catch (error) {
     logGeminiWarning("suggest-region", error);
     res.json({ region: fallbackSuggestRegion(orgName) });
@@ -899,6 +948,12 @@ apiRouter.post("/gemini/suggest-region", async (req, res) => {
 apiRouter.post("/gemini/suggest-name", async (req, res) => {
   const { orgName } = req.body;
   if (!orgName) return res.status(400).json({ error: "Missing orgName parameter" });
+
+  const preset = findPreset(orgName);
+  if (preset) {
+    return res.json({ fullName: preset.fullName });
+  }
+
   if (isGeminiBroken) {
     return res.json({ fullName: fallbackSuggestName(orgName) });
   }
@@ -924,6 +979,12 @@ apiRouter.post("/gemini/suggest-name", async (req, res) => {
 apiRouter.post("/gemini/suggest-category", async (req, res) => {
   const { orgName } = req.body;
   if (!orgName) return res.status(400).json({ error: "Missing orgName parameter" });
+
+  const preset = findPreset(orgName);
+  if (preset) {
+    return res.json({ category: preset.category });
+  }
+
   if (isGeminiBroken) {
     return res.json({ category: fallbackSuggestCategory(orgName) });
   }
