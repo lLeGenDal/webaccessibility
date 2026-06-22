@@ -37,6 +37,54 @@ const REGIONS: RegionData[] = [
   { id: "PAV", name: "Павлодар облысы", path: "M 460,80 L 595,100 L 590,195 L 460,170 Z" }
 ];
 
+const getEnglishRegionName = (name: string): string => {
+  const map: Record<string, string> = {
+    "West Kazakhstan Region": "West Kazakhstan Region",
+    "Atyrau Region": "Atyrau Region",
+    "Mangystau Region": "Mangystau Region",
+    "Aktobe Region": "Aktobe Region",
+    "Kostanay Region": "Kostanay Region",
+    "Ulytau Region": "Ulytau Region",
+    "Kyzylorda Region": "Kyzylorda Region",
+    "North Kazakhstan Region": "North Kazakhstan Region",
+    "Akmola Region": "Akmola Region",
+    "Astana city": "Astana city",
+    "Karaganda Region": "Karaganda Region",
+    "Turkestan Region": "Turkestan Region",
+    "Shymkent city": "Shymkent city",
+    "Zhambyl Region": "Zhambyl Region",
+    "Almaty Region": "Almaty Region",
+    "Jetisu Region": "Jetisu Region",
+    "Almaty city": "Almaty city",
+    "Abai Region": "Abai Region",
+    "East Kazakhstan Region": "East Kazakhstan Region",
+    "Pavlodar Region": "Pavlodar Region",
+    
+    // Kazakh counterparts
+    "Батыс Қазақстан облысы": "West Kazakhstan Region",
+    "Атырау облысы": "Atyrau Region",
+    "Маңғыстау облысы": "Mangystau Region",
+    "Ақтөбе облысы": "Aktobe Region",
+    "Қостанай облысы": "Kostanay Region",
+    "Ұлытау облысы": "Ulytau Region",
+    "Қызылорда облысы": "Kyzylorda Region",
+    "Солтүстік Қазақстан облысы": "North Kazakhstan Region",
+    "Ақмола облысы": "Akmola Region",
+    "Астана қ.": "Astana city",
+    "Қарағанды облысы": "Karaganda Region",
+    "Түркістан облысы": "Turkestan Region",
+    "Шымкент қ.": "Shymkent city",
+    "Жамбыл облысы": "Zhambyl Region",
+    "Алматы облысы": "Almaty Region",
+    "Жетісу облысы": "Jetisu Region",
+    "Алматы қ.": "Almaty city",
+    "Абай облысы": "Abai Region",
+    "Шығыс Қазақстан облысы": "East Kazakhstan Region",
+    "Павлодар облысы": "Pavlodar Region"
+  };
+  return map[name] || name;
+};
+
 interface Props {
   sites: Site[];
   audits: Audit[];
@@ -78,12 +126,12 @@ export default function KazakhstanMap({ sites, audits }: Props) {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <MapIcon className="w-5 h-5 text-indigo-600" />
-              Қазақстанның цифрлық қолжетімділік картасы
+              Kazakhstan Digital Accessibility Map
             </h2>
             <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              <span>Тіркелген сайттар: {sites.filter(s => s.region).length}</span>
+              <span>Monitored Sites: {sites.filter(s => s.region).length}</span>
               <span className="text-gray-200">|</span>
-              <span>Барлық аудиттер: {audits.length}</span>
+              <span>Total Audits: {audits.length}</span>
             </div>
           </div>
           
@@ -125,19 +173,19 @@ export default function KazakhstanMap({ sites, audits }: Props) {
             <div className="absolute bottom-4 right-4 flex flex-col gap-2 bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-gray-100 text-[10px] font-bold">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                <span>Оңтайландырылған (4.0+)</span>
+                <span>Optimized (4.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-indigo-500 rounded-full" />
-                <span>Интеграцияланған (3.0+)</span>
+                <span>Integrated (3.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-amber-500 rounded-full" />
-                <span>Бастапқы (2.0+)</span>
+                <span>Basic (2.0+)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-rose-500 rounded-full" />
-                <span>Критикалық (‹2.0)</span>
+                <span>Critical (&lt;2.0)</span>
               </div>
             </div>
           </div>
@@ -145,28 +193,28 @@ export default function KazakhstanMap({ sites, audits }: Props) {
 
         <div className="w-full lg:w-80 flex flex-col gap-4">
           <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-100">
-            <h3 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4">Аймақ статистикасы</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4">Region Statistics</h3>
             {activeRegion ? (
               <motion.div 
                 key={activeRegion.id}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
               >
-                <p className="text-xl font-black mb-6 leading-tight">{activeRegion.name}</p>
+                <p className="text-xl font-black mb-6 leading-tight">{getEnglishRegionName(activeRegion.name)}</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[10px] font-bold uppercase opacity-60">Орташа ITA индексі</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Avg ITA Index</p>
                     <p className="text-2xl font-black">{activeRegion.avgIta || "—"}</p>
                   </div>
                   <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[10px] font-bold uppercase opacity-60">Сайттар</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Sites</p>
                     <p className="text-2xl font-black">{activeRegion.count}</p>
                   </div>
                 </div>
                 <div className="mt-4 bg-white/10 p-4 rounded-2xl flex items-center gap-3">
                   <BarChart3 className="w-5 h-5 opacity-60" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase opacity-60">Өткізілген аудиттер</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60">Audits Performed</p>
                     <p className="text-lg font-bold">{activeRegion.auditCount}</p>
                   </div>
                 </div>
@@ -174,39 +222,39 @@ export default function KazakhstanMap({ sites, audits }: Props) {
             ) : (
               <div className="h-40 flex flex-col items-center justify-center text-center opacity-60">
                 <Info className="w-8 h-8 mb-2" />
-                <p className="text-sm">Мәліметтерді көру үшін аймаққа меңзерді апарыңыз</p>
+                <p className="text-sm">Hover over a region name on the map to inspect metrics</p>
               </div>
             )}
           </div>
 
           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex-1 overflow-y-auto max-h-[300px]">
              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-               <Users className="w-4 h-4" />
-               Үздік аймақтар
+                <Users className="w-4 h-4" />
+                Top Performing Regions
              </h3>
              <div className="space-y-3">
-               {regionStats
-                 .filter(r => r.count > 0)
-                 .sort((a, b) => b.avgIta - a.avgIta)
-                 .map((r, idx) => (
-                   <div key={r.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
-                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black text-gray-300">#0{idx+1}</span>
-                       <p className="text-xs font-bold text-gray-700 truncate w-32">{r.name}</p>
-                     </div>
-                     <span className={cn(
-                       "px-2 py-0.5 rounded-full text-[10px] font-black",
-                       r.avgIta >= 4.0 ? "bg-emerald-100 text-emerald-600" :
-                       r.avgIta >= 3.0 ? "bg-indigo-100 text-indigo-600" : "bg-amber-100 text-amber-600"
-                     )}>
-                       {r.avgIta}
-                     </span>
-                   </div>
-                 ))
-               }
-               {regionStats.filter(r => r.count > 0).length === 0 && (
-                 <p className="text-center text-xs text-gray-400 mt-10">Рейтинг үшін деректер жоқ</p>
-               )}
+                {regionStats
+                  .filter(r => r.count > 0)
+                  .sort((a, b) => b.avgIta - a.avgIta)
+                  .map((r, idx) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-gray-300">#0{idx+1}</span>
+                        <p className="text-xs font-bold text-gray-700 truncate w-32">{getEnglishRegionName(r.name)}</p>
+                      </div>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-black",
+                        r.avgIta >= 4.0 ? "bg-emerald-100 text-emerald-600" :
+                        r.avgIta >= 3.0 ? "bg-indigo-100 text-indigo-600" : "bg-amber-100 text-amber-600"
+                      )}>
+                        {r.avgIta}
+                      </span>
+                    </div>
+                  ))
+                }
+                {regionStats.filter(r => r.count > 0).length === 0 && (
+                  <p className="text-center text-xs text-gray-400 mt-10">No ranking data available</p>
+                )}
              </div>
           </div>
         </div>

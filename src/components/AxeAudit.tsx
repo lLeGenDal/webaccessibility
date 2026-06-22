@@ -24,21 +24,18 @@ export default function AxeAudit() {
   const runAudit = async (url?: string) => {
     setIsAuditing(true);
     setError(null);
-    // Small delay to let UI settle
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
       let context: any = document;
 
       if (url) {
-        // Fetch external site HTML via proxy
         const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
         if (!response.ok) {
-          throw new Error("Не удалось загрузить сайт через прокси. Возможно, он защищен от автоматических запросов.");
+          throw new Error("Could not load site via proxy. It may be protected from automated requests, or require manual HTML code audit.");
         }
         const html = await response.text();
 
-        // Create a temporary container to render the site
         const container = document.createElement('div');
         container.id = 'audit-sandbox';
         container.style.display = 'none';
@@ -49,7 +46,6 @@ export default function AxeAudit() {
 
       const axeResults = await safeAxeRun(context);
       
-      // Cleanup sandbox
       const sandbox = document.getElementById('audit-sandbox');
       if (sandbox) sandbox.remove();
 
@@ -62,7 +58,7 @@ export default function AxeAudit() {
       });
     } catch (error: any) {
       console.error("Axe audit failed:", error);
-      setError(error.message || "Произошла ошибка при проведении аудита.");
+      setError(error.message || "An error occurred during the technical accessibility audit.");
     } finally {
       setIsAuditing(false);
     }
@@ -94,10 +90,10 @@ export default function AxeAudit() {
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
             <ShieldCheck className="text-indigo-600 w-8 h-8" />
-            Аудит любого сайта (Axe Core)
+            Any URL Sandbox Audit (Axe Core)
           </h1>
           <p className="text-gray-500 mt-2 max-w-2xl">
-            Введите URL любого сайта, чтобы прогнать его через движок <code className="bg-gray-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono text-sm">axe-core</code>.
+            Enter any target URL of your digital resource to verify structure and markup using the deterministic <code className="bg-gray-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono text-sm">axe-core</code> engine.
           </p>
           
           <form onSubmit={handleExternalAudit} className="mt-6 flex gap-3 max-w-xl">
@@ -118,7 +114,7 @@ export default function AxeAudit() {
               className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {isAuditing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-              Проверить
+              Analyze
             </button>
           </form>
           {error && <p className="mt-3 text-sm text-red-600 font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {error}</p>}
@@ -130,7 +126,7 @@ export default function AxeAudit() {
             className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
           >
             <RefreshCw className={cn("w-5 h-5", isAuditing && !targetUrl && "animate-spin")} />
-            Проверить это приложение
+            Audit Current Sandbox App
           </button>
         </div>
       </div>
@@ -146,7 +142,7 @@ export default function AxeAudit() {
               <AlertTriangle className="text-red-600 w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Нарушения</p>
+              <p className="text-sm text-gray-500 font-medium">Violations</p>
               <p className="text-2xl font-bold text-gray-900">{results.violations.length}</p>
             </div>
           </motion.div>
@@ -161,7 +157,7 @@ export default function AxeAudit() {
               <CheckCircle className="text-green-600 w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Пройдено тестов</p>
+              <p className="text-sm text-gray-500 font-medium">Tests Passed</p>
               <p className="text-2xl font-bold text-gray-900">{results.passes.length}</p>
             </div>
           </motion.div>
@@ -176,7 +172,7 @@ export default function AxeAudit() {
               <Info className="text-blue-600 w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Последняя проверка</p>
+              <p className="text-sm text-gray-500 font-medium">Last Execution</p>
               <p className="text-2xl font-bold text-gray-900">{results.timestamp}</p>
             </div>
           </motion.div>
@@ -194,7 +190,7 @@ export default function AxeAudit() {
                 : "text-gray-500 border-transparent hover:bg-gray-50"
             )}
           >
-            Нарушения ({results?.violations.length || 0})
+            Violations ({results?.violations.length || 0})
           </button>
           <button
             onClick={() => setActiveTab("passes")}
@@ -205,7 +201,7 @@ export default function AxeAudit() {
                 : "text-gray-500 border-transparent hover:bg-gray-50"
             )}
           >
-            Успешные тесты ({results?.passes.length || 0})
+            Successful Scans ({results?.passes.length || 0})
           </button>
         </div>
 
@@ -222,8 +218,8 @@ export default function AxeAudit() {
                 {results?.violations.length === 0 ? (
                   <div className="text-center py-12">
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900">Нарушений не найдено!</h3>
-                    <p className="text-gray-500">Ваш интерфейс соответствует базовым правилам доступности.</p>
+                    <h3 className="text-xl font-bold text-gray-900">0 Violations Found!</h3>
+                    <p className="text-gray-500">Your page interface achieves baseline elements compliance.</p>
                   </div>
                 ) : (
                   results?.violations.map((violation, idx) => (
@@ -236,7 +232,7 @@ export default function AxeAudit() {
                         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-center gap-4">
-                          <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border", getSeverityColor(violation.impact))}>
+                          <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border", getSeverityColor(violation.impact))} >
                             {violation.impact}
                           </span>
                           <h3 className="font-bold text-gray-900">{violation.help}</h3>
@@ -255,12 +251,12 @@ export default function AxeAudit() {
                             <p className="text-gray-700 mb-4">{violation.description}</p>
                             <div className="space-y-4">
                               <div className="bg-white p-4 rounded-xl border border-gray-200">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Как исправить:</p>
-                                <p className="text-sm text-gray-600">{violation.helpUrl ? <a href={violation.helpUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{violation.help} (Документация)</a> : violation.help}</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">How to remediate:</p>
+                                <p className="text-sm text-gray-600">{violation.helpUrl ? <a href={violation.helpUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{violation.help} (Documentation)</a> : violation.help}</p>
                               </div>
                               
                               <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Затронутые элементы ({violation.nodes.length}):</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Affected DOM Nodes ({violation.nodes.length}):</p>
                                 <div className="space-y-2">
                                   {violation.nodes.map((node, idx) => (
                                     <div key={idx} className="bg-gray-900 text-gray-300 p-3 rounded-lg font-mono text-xs overflow-x-auto">
@@ -302,7 +298,7 @@ export default function AxeAudit() {
 
       <div className="bg-indigo-900 text-white p-8 rounded-3xl shadow-xl overflow-hidden relative">
         <div className="relative z-10">
-          <h2 className="text-2xl font-bold mb-4">Как работает этот инструмент?</h2>
+          <h2 className="text-2xl font-bold mb-4">How does this engine work?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div className="flex gap-4">
@@ -310,8 +306,8 @@ export default function AxeAudit() {
                   <Search className="w-5 h-5 text-indigo-300" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-indigo-100">Анализ DOM</h4>
-                  <p className="text-sm text-indigo-200/80">Библиотека сканирует HTML-код текущей страницы и ищет несоответствия стандартам WCAG.</p>
+                  <h4 className="font-bold text-indigo-100">DOM Parser Scan</h4>
+                  <p className="text-sm text-indigo-200/80">The scanner walks the target page's live DOM tree to flag structural deviations from WCAG standards.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -319,8 +315,8 @@ export default function AxeAudit() {
                   <Eye className="w-5 h-5 text-indigo-300" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-indigo-100">Проверка контраста</h4>
-                  <p className="text-sm text-indigo-200/80">Алгоритмы вычисляют разницу между цветом текста и фона для обеспечения читаемости.</p>
+                  <h4 className="font-bold text-indigo-100">Color Contrast Checks</h4>
+                  <p className="text-sm text-indigo-200/80">Algorithmic computations calculate color difference ratios between foreground text and surrounding background layers.</p>
                 </div>
               </div>
             </div>
@@ -330,8 +326,8 @@ export default function AxeAudit() {
                   <ShieldCheck className="text-indigo-300 w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-indigo-100">ARIA-валидация</h4>
-                  <p className="text-sm text-indigo-200/80">Проверяется корректность использования атрибутов для экранных дикторов.</p>
+                  <h4 className="font-bold text-indigo-100">ARIA Attribute Mapping</h4>
+                  <p className="text-sm text-indigo-200/80">Determines semantic correctness for screen readers, checking validity of landmarks and accessible inputs.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -339,8 +335,8 @@ export default function AxeAudit() {
                   <AlertTriangle className="text-indigo-300 w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-indigo-100">Отчет об ошибках</h4>
-                  <p className="text-sm text-indigo-200/80">Вы получаете точные указания на элементы, которые требуют исправления.</p>
+                  <h4 className="font-bold text-indigo-100">Targeted Issue Logs</h4>
+                  <p className="text-sm text-indigo-200/80">You receive precision selectors identifying the exact node pointers that require immediate code correction.</p>
                 </div>
               </div>
             </div>

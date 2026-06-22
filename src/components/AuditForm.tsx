@@ -108,11 +108,11 @@ export default function AuditForm() {
       if (!html) {
         if (!site.url) {
           setShowManualInput(true);
-          throw new Error("Жүйелік белгі: Ұйымның мекенжай сілтемесі жоқ. Процедуралық қолмен енгізу қажет.");
+          throw new Error("System alert: Selected organization has no valid URL. Manual code submission is required.");
         }
         
         // 1. Fetch HTML
-        setAuditStep("Экстракцияны инициализациялау...");
+        setAuditStep("Initializing document extraction...");
         try {
           const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(site.url)}`);
           
@@ -137,14 +137,14 @@ export default function AuditForm() {
       }
 
       // 1. Stage 1: AI Pre-Audit
-      setAuditStep("Нейрондық контекстизациялау: ЖИ сканерлеу архитектурасы...");
+      setAuditStep("AI Contextualization: Mapping scanner nodes...");
       const preAuditStrategicFocus = await runAIPreAudit(html);
 
       // 2. Stage 2: Technical Scans
-      setAuditStep("Axe-Core: Техникалық терең сканерлеу...");
+      setAuditStep("Axe-Core: Running programmatic checks...");
       const axeResults = await runAxeAudit(html);
 
-      setAuditStep("Негізгі қозғалтқыштар: Көпдеңгейлі құрылымдық аудит...");
+      setAuditStep("Core Engine: Structural accessibility analysis...");
       const internalResults = runCustomScanner(html);
       
       const rawIssues: Issue[] = [
@@ -153,11 +153,11 @@ export default function AuditForm() {
       ];
 
       // 3. Stage 3: AI Intelligence (Semantic, Logic, Strategy)
-      setAuditStep("Нейрондық процесс: ЖИ стратегиялық үлгілерді тану...");
+      setAuditStep("AI Inference: Evaluating semantic heuristics...");
       const aiAnalysis = await runAISemanticAudit(site.url, html, rawIssues);
 
       // 4. Synthesis & Score Calculation
-      setAuditStep("ЖИ Синтезі: Мультимодальді қорытындыларды біріктіру...");
+      setAuditStep("AI Synthesis: Integrating multimodal checkpoints...");
       
       const allIssues: Issue[] = [
         ...rawIssues,
@@ -180,7 +180,7 @@ export default function AuditForm() {
       const finalAssessment = calculateInternalAssessment(finalIssues);
 
       // 5. Stage 4: AI Final Report
-      setAuditStep("ЖИ басқарушылық есебін жасау...");
+      setAuditStep("AI Report Synthesis: Compiling executive summary...");
       const finalSummary = await runAIFinalSynthesis({
         ...finalAssessment,
         aiScore: aiAnalysis.aiScore,
@@ -188,7 +188,7 @@ export default function AuditForm() {
       }, finalIssues);
 
       // 6. Save to Database
-      setAuditStep("Есепті аяқтау: Стратегиялық деректерді шифрлау...");
+      setAuditStep("Completing Audit: Enrolling structured data...");
       const auditId = Math.random().toString(36).substring(2, 15);
       const auditData: Audit = {
         id: auditId,
@@ -241,7 +241,7 @@ export default function AuditForm() {
         setShowManualInput(true);
         setTimeout(focusManualInput, 300);
       }
-      setError(err.message || "Стратегиялық қателік: Нысаналы сектормен байланыс үзілді.");
+      setError(err.message || "Audit error: Target server is unreachable. Shielding systems may prevent direct automated scans.");
     } finally {
       setIsAuditing(false);
       setAuditStep("");
@@ -267,18 +267,18 @@ export default function AuditForm() {
           <ClipboardCheck className="text-white w-10 h-10" />
         </div>
         
-        <h1 className="text-4xl font-extrabold text-white mb-3 tracking-tight">Стратегиялық аудитті бастау</h1>
-        <p className="text-[#707AA1] mb-12 font-medium tracking-wide">WCAG 2.2 жан-жақты талдау үшін нысаналы ұйымды таңдаңыз.</p>
+        <h1 className="text-4xl font-extrabold text-white mb-3 tracking-tight">Start Quality & Accessibility Audit</h1>
+        <p className="text-[#707AA1] mb-12 font-medium tracking-wide">Select a target organization from the registry for a complete WCAG 2.2 analysis.</p>
 
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.3em]">Жедел нысана</label>
+              <label className="text-[10px] font-black text-[#707AA1] uppercase tracking-[0.3em]">Target Resource</label>
               <button 
                 onClick={handleManualToggle}
                 className="text-[10px] font-black text-indigo-400 underline decoration-indigo-400/30 underline-offset-4 uppercase tracking-widest hover:text-indigo-300 transition-colors"
               >
-                {showManualInput ? "[ Код енгізуді өшіру ]" : "[ Код енгізуді қолдану ]"}
+                {showManualInput ? "[ Disable Code Input ]" : "[ Enable Code Input ]"}
               </button>
             </div>
             
@@ -287,7 +287,7 @@ export default function AuditForm() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D3558] group-focus-within:text-indigo-400 transition-colors" />
                 <input
                   type="text"
-                  placeholder="Нысаналарды сүзу..."
+                  placeholder="Search resources..."
                   value={siteFilter}
                   onChange={e => setSiteFilter(e.target.value)}
                   className="w-full pl-12 pr-6 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-sm text-white placeholder-[#2D3558] focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
@@ -301,7 +301,7 @@ export default function AuditForm() {
                   disabled={isAuditing}
                   className="w-full pl-12 pr-6 py-4 bg-[#161B31] border border-[#2D3558] rounded-2xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
                 >
-                  <option value="">Ұйымдық нысанды таңдаңыз...</option>
+                  <option value="">Choose organization...</option>
                   {filteredSites.map((site, index) => (
                     <option key={`${site.id}-${index}`} value={site.id}>{site.name} {site.url ? `(${site.url.replace(/^https?:\/\//, '')})` : ""}</option>
                   ))}
@@ -322,7 +322,7 @@ export default function AuditForm() {
                     <AlertCircle className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <p className="font-black uppercase tracking-widest text-xs">Қауіпсіздік протоколының ескертуі</p>
+                    <p className="font-black uppercase tracking-widest text-xs">Security Protocol Warning</p>
                     <p className="text-sm font-medium opacity-80 leading-relaxed truncate max-w-sm">{error}</p>
                   </div>
                 </div>
@@ -332,18 +332,18 @@ export default function AuditForm() {
                     <div className="flex items-start gap-4">
                        <BrainCircuit className="w-6 h-6 text-indigo-400 shrink-0" />
                        <p className="text-xs text-[#707AA1] leading-relaxed font-medium">
-                         <span className="text-indigo-400 font-black uppercase tracking-[0.2em] block mb-2">Протоколдық түсінік</span>
-                         Мемлекеттік сектор ресурстары (.gov.kz, .edu.kz) жоғары деңгейлі бұлттық файрвол қорғанысын пайдаланады. Автоматты сканерлер жиі бұғатталады.
+                          <span className="text-indigo-400 font-black uppercase tracking-[0.2em] block mb-2">Protocol Insight</span>
+                          Gov sector resources often use strict firewalls or cloud shields that block automated scanners. Under these circumstances, manual code input is useful.
                        </p>
                     </div>
                     <button 
                       onClick={() => setShowManualInput(true)}
                       className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-500 transition-all shadow-[0_5px_15px_rgba(79,70,229,0.2)]"
                     >
-                      Қорғанысты айналып өту (Кодты қолмен енгізу)
+                      Bypass Shielding (Enter Source Code Manually)
                     </button>
                     <div className="flex items-center justify-center gap-2">
-                       <span className="text-[9px] text-[#4F5A85] font-bold uppercase tracking-widest">Нұсқаулық: Нысаналы сайтта CTRL+U пернелерін басып, бастапқы кодты көшіріңіз</span>
+                       <span className="text-[9px] text-[#4F5A85] font-bold uppercase tracking-widest">Instruction: Press CTRL+U on target site and copy-paste the HTML markup here</span>
                     </div>
                   </div>
                 )}
@@ -357,13 +357,13 @@ export default function AuditForm() {
                 className="space-y-4"
               >
                 <div className="relative group">
-                  <div className="absolute top-4 right-4 text-[10px] font-black text-indigo-500/50 uppercase tracking-widest">Бастапқы код буфері</div>
+                  <div className="absolute top-4 right-4 text-[10px] font-black text-indigo-500/50 uppercase tracking-widest">HTML Buffer</div>
                   <textarea 
                     id="manual-html-input"
                     value={manualHtml}
                     onChange={e => setManualHtml(e.target.value)}
                     className="w-full h-64 px-8 py-8 bg-[#111422] border border-[#2D3558] rounded-3xl text-sm text-[#A6AFC9] font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder-[#2D3558]"
-                    placeholder="<!-- Нейрондық өңдеу үшін мұнда түпнұсқа HTML кодын қойыңыз -->"
+                    placeholder="<!-- Paste original HTML here for AI-powered processing -->"
                   />
                 </div>
                 <button
@@ -371,7 +371,7 @@ export default function AuditForm() {
                   disabled={!manualHtml.trim() || !selectedSiteId}
                   className="w-full py-5 bg-white text-[#111422] rounded-2xl font-black uppercase tracking-[0.3em] text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-white/10"
                 >
-                  Нейрондық сканерлеуді растау
+                  Confirm Auditing Stream
                 </button>
               </motion.div>
             )}
@@ -386,7 +386,7 @@ export default function AuditForm() {
                 </div>
                 <div className="text-center">
                   <p className="font-black text-white uppercase tracking-[0.3em] text-sm animate-pulse">{auditStep}</p>
-                  <p className="text-[10px] text-[#707AA1] font-bold uppercase tracking-widest mt-2">Стратегиялық аудит процесі орындалуда</p>
+                  <p className="text-[10px] text-[#707AA1] font-bold uppercase tracking-widest mt-2">Strategic accessibility audit in progress</p>
                 </div>
               </div>
               <div className="w-full bg-[#161B31] h-1.5 rounded-full overflow-hidden">
@@ -406,7 +406,7 @@ export default function AuditForm() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               <ShieldCheck className="w-6 h-6 group-hover:scale-125 transition-transform" />
-              <span>Инфрақұрылымды талдау</span>
+              <span>Analyze Infrastructure</span>
             </button>
           )}
         </div>
@@ -417,9 +417,9 @@ export default function AuditForm() {
               <Search className="w-6 h-6 text-indigo-400" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-widest mb-2">Техникалық зерттеу</p>
+              <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-widest mb-2">Technical Investigation</p>
               <p className="text-xs text-[#A6AFC9] leading-relaxed font-medium">
-                Терең құрылым, контраст айырмашылықтары және автоматты қолжетімділік сканерлері.
+                Deep structural analysis, contrast evaluation, and automated accessibility scanning engines.
               </p>
             </div>
           </div>
@@ -428,9 +428,9 @@ export default function AuditForm() {
               <ClipboardCheck className="w-6 h-6 text-purple-400" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-widest mb-2">Сәйкестік бағасы</p>
+              <p className="text-[10px] font-black text-[#707AA1] uppercase tracking-widest mb-2">Compliance Evaluation</p>
               <p className="text-xs text-[#A6AFC9] leading-relaxed font-medium">
-                Қорытынды WCAG 2.2 стандарттарына сәйкестігін кешенді тексеру.
+                Consolidated criteria mapping and scoring under WCAG 2.2 accessibility standard.
               </p>
             </div>
           </div>

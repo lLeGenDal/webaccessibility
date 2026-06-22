@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-export type Language = "kk" | "ru";
+export type Language = "en" | "kk" | "ru";
 
 interface LanguageContextType {
   language: Language;
@@ -9,8 +9,121 @@ interface LanguageContextType {
 }
 
 const translations: Record<Language, Record<string, string>> = {
-  kk: {
+  en: {
     // Navigation & General
+    "nav.dashboard": "Dashboard",
+    "nav.sites": "Organizations",
+    "nav.audits": "Audit Logs",
+    "nav.startAudit": "Start Audit",
+    "nav.compare": "Comparison",
+    "nav.settings": "Settings",
+    "nav.logout": "Logout",
+    "nav.login": "Console Login",
+    "nav.register": "Create Account",
+    "nav.methodology": "Methodology",
+    
+    // Auth Page
+    "auth.neural": "Neural Compliance Infrastructure",
+    "auth.fullName": "Full Name",
+    "auth.email": "Email Address",
+    "auth.password": "Security Key",
+    "auth.placeholderName": "Alikhan Ermekov",
+    "auth.placeholderEmail": "access@domain.kz",
+    "auth.hasAccount": "Already have an account? Login",
+    "auth.noAccount": "Need new access? Register",
+    "auth.loadingSystem": "Launching System",
+
+    // Dashboard page general
+    "dash.welcome": "Welcome",
+    "dash.monitor": "Accessibility Analysis of Information Resources",
+    "dash.itaIndex": "Integral ITA Index",
+    "dash.avgScore": "Average Score",
+    "dash.totalSites": "Monitored Resources",
+    "dash.totalAudits": "Completed Audits",
+    "dash.criticalIssues": "Critical Issues",
+    "dash.latestAudit": "Latest Audit",
+    "dash.noAuditsYet": "No audits conducted yet",
+    "dash.byRegions": "Monitoring by Kazakhstan Regions",
+    "dash.newAuditBtn": "Start New Audit",
+    "dash.recentSites": "Latest Audited Organizations",
+    "dash.siteName": "Organization Name",
+    "dash.auditDate": "Date",
+    "dash.score": "Score",
+    "dash.viewResults": "View Results",
+    "dash.trend": "ITA Change Trend",
+    "dash.distribution": "Compliance Level Share",
+    "dash.levelPassed": "Level Passed",
+
+    // Sites page general
+    "sites.title": "Registry of Monitored Organizations",
+    "sites.description": "Group of state, financial, educational, and other critical resources",
+    "sites.addBtn": "Add New Organization",
+    "sites.searchPlaceholder": "Search organizations by name or region...",
+    "sites.nameLabel": "Official Name",
+    "sites.urlLabel": "Official Website (URL)",
+    "sites.categoryLabel": "Category",
+    "sites.regionLabel": "Region in Kazakhstan",
+    "sites.autoFill": "Intelligent Auto-fill (Gemini)",
+    "sites.autoFillLoading": "Analyzing data...",
+    "sites.cancel": "Cancel",
+    "sites.save": "Save",
+    "sites.noSites": "No monitored organizations found",
+    "sites.deleteSuccess": "Organization deleted successfully",
+    
+    // Audit Form page
+    "auditForm.title": "Launch New Accessibility Audit",
+    "auditForm.desc": "Key to conducting multi-level deep analysis of an organization's web resource based on WCAG 2.2",
+    "auditForm.selectOrg": "Select Organization (from Registry)",
+    "auditForm.selectPlaceholder": "Choose organizational entity...",
+    "auditForm.manualInputGroup": "Or enter HTML code for manual analysis",
+    "auditForm.labelHtml": "HTML or Plain Text Data",
+    "auditForm.runAuditBtn": "Start Audit",
+    "auditForm.analyzing": "Analysis in Progress",
+    
+    // Audit Results page
+    "results.title": "Audit Results",
+    "results.tactical": "Tactical Report Version",
+    "results.itaIndex": "ITA Index",
+    "results.visualContrast": "Visual Contrast",
+    "results.screenReaders": "Screen Reader Support",
+    "results.keyboardAccessibility": "Keyboard Accessibility",
+    "results.htmlStructure": "HTML Structural Semantics",
+    "results.aiScore": "AI Semantic Score",
+    "results.manualScore": "Manual Assessment Share",
+    "results.summary": "Audit Summary",
+    "results.strategicReview": "Strategic Review (AI)",
+    "results.recommendations": "Methodological Recommendations",
+    "results.recommendationsSubtitle": "Steps to ensure full compliance with regulatory standards",
+    "results.issuesList": "Official Protocol of Detected Vulnerabilities",
+    "results.severity": "Severity Level",
+    "results.wcag": "WCAG Section",
+    "results.engine": "Module",
+    "results.recommendation": "Recommendation",
+    "results.actions": "Actions",
+    "results.pending": "Pending",
+    "results.confirmed": "Confirmed",
+    "results.rejected": "Rejected",
+    "results.manualValidate": "Go to Manual Verification",
+    "results.scoreDistribution": "Organization Compliance Indicators",
+    
+    // Compare page
+    "compare.title": "Mutual Comparison of Audit Results",
+    "compare.desc": "Dynamic analysis of audit data conducted at different times or for different resources",
+    "compare.chooseSource": "Base Audit",
+    "compare.chooseTarget": "Compared Audit",
+    "compare.difference": "Difference",
+    "compare.metric": "Metric",
+    "compare.status": "Status",
+    
+    // Category Names
+    "cat.University": "University / Educational",
+    "cat.Government": "Government Agency",
+    "cat.Finance": "Financial Institution (Bank)",
+    "cat.Healthcare": "Healthcare",
+    "cat.Company": "Private Company",
+    "cat.Non-Profit": "Non-Profit / NGO"
+  },
+  kk: {
     "nav.dashboard": "Бақылау тақтасы",
     "nav.sites": "Ұйымдар",
     "nav.audits": "Аудит хаттамасы",
@@ -21,8 +134,6 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.login": "Консольге кіру",
     "nav.register": "Тіркелгіні жасау",
     "nav.methodology": "Әдістемелік нұсқау",
-    
-    // Auth Page
     "auth.neural": "Нейрондық сәйкестік инфрақұрылымы",
     "auth.fullName": "Толық аты-жөні",
     "auth.email": "Электрондық пошта",
@@ -32,8 +143,6 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.hasAccount": "Тіркелгіңіз бар ма? Кіру",
     "auth.noAccount": "Жаңа рұқсат керек пе? Тіркелу",
     "auth.loadingSystem": "Жүйе іске қосылуда",
-
-    // Dashboard page general
     "dash.welcome": "Қош келдіңіз",
     "dash.monitor": "Ақпараттық ресурстардың қолжетімділігін талдау",
     "dash.itaIndex": "Интегралдық ITA индексі",
@@ -53,8 +162,6 @@ const translations: Record<Language, Record<string, string>> = {
     "dash.trend": "ITA өзгеру тенденциясы",
     "dash.distribution": "Сәйкестік деңгейінің үлесі",
     "dash.levelPassed": "Деңгейден өткендер",
-
-    // Sites page general
     "sites.title": "Бақылаудағы ұйымдар тізілімі",
     "sites.description": "Мемлекеттік, қаржылық, білім беру және басқа да маңызды ресурстар тобы",
     "sites.addBtn": "Жаңа ұйымды қосу",
@@ -67,10 +174,8 @@ const translations: Record<Language, Record<string, string>> = {
     "sites.autoFillLoading": "Деректер талдануда...",
     "sites.cancel": "Бас тарту",
     "sites.save": "Сақтау",
-    "sites.noSites": "Бақылауда ұйымдар табылмады",
+    "sites.noSites": "Бақылау ұйымдар табылмады",
     "sites.deleteSuccess": "Ұйым сәтті жойылды",
-    
-    // Audit Form page
     "auditForm.title": "Жаңа қолжетімділік аудитін іске қосу",
     "auditForm.desc": "Ұйымның веб-ресурсын WCAG 2.2 стандарттары бойынша бірнеше деңгейлі терең талдаудан өткізу кілті",
     "auditForm.selectOrg": "Ұйымды таңдаңыз (тізілімнен)",
@@ -79,8 +184,6 @@ const translations: Record<Language, Record<string, string>> = {
     "auditForm.labelHtml": "HTML немесе мәтіндік деректер",
     "auditForm.runAuditBtn": "Аудитті бастау",
     "auditForm.analyzing": "Талдау жүргізілуде",
-    
-    // Audit Results page
     "results.title": "Аудит қорытындылары",
     "results.tactical": "Тактикалық есеп нұсқасы",
     "results.itaIndex": "ITA Индексі",
@@ -105,8 +208,6 @@ const translations: Record<Language, Record<string, string>> = {
     "results.rejected": "Жойылды",
     "results.manualValidate": "Қолмен тексеруге өту",
     "results.scoreDistribution": "Ұйым бойынша сәйкестік көрсеткіштері",
-    
-    // Compare page
     "compare.title": "Аудит нәтижелерін өзара салыстыру",
     "compare.desc": "Әртүрлі мерзімде немесе әртүрлі ресурстар үшін жүргізілген аудит деректерін динамикалық түрде сараптау",
     "compare.chooseSource": "Бастапқы аудит",
@@ -114,8 +215,6 @@ const translations: Record<Language, Record<string, string>> = {
     "compare.difference": "Айырмашылық",
     "compare.metric": "Көрсеткіш",
     "compare.status": "Мәртебе",
-    
-    // Category Names
     "cat.University": "ЖОО / Білім ордасы",
     "cat.Government": "Мемлекеттік орган",
     "cat.Finance": "Қаржы институты (Банк)",
@@ -124,7 +223,6 @@ const translations: Record<Language, Record<string, string>> = {
     "cat.Non-Profit": "Еріктілер қорлары"
   },
   ru: {
-    // Navigation & General
     "nav.dashboard": "Панель управления",
     "nav.sites": "Организации",
     "nav.audits": "Протокол аудита",
@@ -135,8 +233,6 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.login": "Войти в консоль",
     "nav.register": "Создать аккаунт",
     "nav.methodology": "Методология",
-
-    // Auth Page
     "auth.neural": "Инфраструктура нейронного соответствия",
     "auth.fullName": "Полное имя",
     "auth.email": "Электронная почта",
@@ -146,8 +242,6 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.hasAccount": "Уже есть аккаунт? Войти",
     "auth.noAccount": "Нужен новый доступ? Регистрация",
     "auth.loadingSystem": "Запуск системы",
-
-    // Dashboard page general
     "dash.welcome": "Добро пожаловать",
     "dash.monitor": "Анализ доступности информационных ресурсов",
     "dash.itaIndex": "Интегральный индекс ITA",
@@ -167,8 +261,6 @@ const translations: Record<Language, Record<string, string>> = {
     "dash.trend": "Тенденция изменения ITA",
     "dash.distribution": "Доля уровня соответствия",
     "dash.levelPassed": "Прошедшие уровень",
-
-    // Sites page general
     "sites.title": "Реестр контролируемых организаций",
     "sites.description": "Группа государственных, финансовых, образовательных и других критических ресурсов",
     "sites.addBtn": "Добавить новую организацию",
@@ -183,8 +275,6 @@ const translations: Record<Language, Record<string, string>> = {
     "sites.save": "Сохранить",
     "sites.noSites": "Контролируемые организации не найдены",
     "sites.deleteSuccess": "Организация успешно удалена",
-
-    // Audit Form page
     "auditForm.title": "Запуск нового аудита доступности",
     "auditForm.desc": "Ключ к проведению многоуровневого глубокого анализа веб-ресурса организации по стандартам WCAG 2.2",
     "auditForm.selectOrg": "Выберите организацию (из реестра)",
@@ -193,8 +283,6 @@ const translations: Record<Language, Record<string, string>> = {
     "auditForm.labelHtml": "HTML или текстовые данные",
     "auditForm.runAuditBtn": "Начать аудит",
     "auditForm.analyzing": "Выполняется анализ",
-
-    // Audit Results page
     "results.title": "Результаты аудита",
     "results.tactical": "Тактический отчет",
     "results.itaIndex": "Индекс ITA",
@@ -219,8 +307,6 @@ const translations: Record<Language, Record<string, string>> = {
     "results.rejected": "Удалено",
     "results.manualValidate": "Перейти к ручной проверке",
     "results.scoreDistribution": "Показатели соответствия организации",
-
-    // Compare page
     "compare.title": "Взаимное сравнение результатов аудита",
     "compare.desc": "Динамический анализ данных аудита, проведенного в разные сроки или для разных ресурсов",
     "compare.chooseSource": "Исходный аудит",
@@ -228,8 +314,6 @@ const translations: Record<Language, Record<string, string>> = {
     "compare.difference": "Разница",
     "compare.metric": "Показатель",
     "compare.status": "Статус",
-
-    // Category Names
     "cat.University": "ВУЗ / Учебное заведение",
     "cat.Government": "Государственный орган",
     "cat.Finance": "Финансовый институт (Банк)",
@@ -249,8 +333,9 @@ export const useLanguage = () => {
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(() => {
+    // Default to 'en' (English) as requested by the user
     const saved = localStorage.getItem("qazaqaccess_lang");
-    return (saved === "kk" || saved === "ru" ? saved : "kk") as Language;
+    return (saved === "en" || saved === "kk" || saved === "ru" ? saved : "en") as Language;
   });
 
   const setLanguage = (lang: Language) => {
@@ -259,7 +344,7 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   const t = (key: string): string => {
-    return translations[language][key] || translations["kk"][key] || key;
+    return translations[language][key] || translations["en"][key] || key;
   };
 
   return (

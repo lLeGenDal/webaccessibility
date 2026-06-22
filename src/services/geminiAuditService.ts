@@ -18,7 +18,8 @@ export interface AIAnalysisResult {
 const getHeaders = () => {
   const token = localStorage.getItem("token");
   const headers: any = {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "x-ai-provider": localStorage.getItem("ai_provider") || "gemini"
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

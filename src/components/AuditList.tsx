@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../App";
 import { Audit, Site } from "../types";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Trash2, ExternalLink, Calendar, BarChart3, AlertCircle, Loader2, Search, ArrowLeft, Download } from "lucide-react";
+import { Trash2, ExternalLink, Calendar, BarChart3, Search, ArrowLeft, Download } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { apiService } from "../services/apiService";
-import { Activity } from "lucide-react";
 
 export default function AuditList() {
   const { user } = useAuth();
@@ -20,7 +19,6 @@ export default function AuditList() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function AuditList() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", "audits.json");
+    downloadAnchor.setAttribute("download", "accessibility_audits.json");
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -102,7 +100,6 @@ export default function AuditList() {
   const handleDeleteAudit = async (id: string) => {
     try {
       await apiService.deleteAudit(id);
-      // Reload everything to stay in sync
       const [sitesData, auditsData] = await Promise.all([
         apiService.getSites(user?.id || ""),
         apiService.getAudits()
@@ -128,7 +125,7 @@ export default function AuditList() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
         <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">Аудит қоймасына кіру</p>
+        <p className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] animate-pulse">Accessing Audit Records</p>
       </div>
     );
   }
@@ -147,10 +144,10 @@ export default function AuditList() {
           )}
           <div>
             <h1 className="text-4xl font-extrabold text-white tracking-tight">
-              {siteIdFilter ? `${sites.find(s => s.id === siteIdFilter)?.name}` : "Аудит журналдары"}
+              {siteIdFilter ? `${sites.find(s => s.id === siteIdFilter)?.name}` : "Audit Records Logs"}
             </h1>
             <p className="text-[#707AA1] mt-2 font-medium italic">
-              {siteIdFilter ? "VaMoLà стратегиясы бойынша сәйкестік динамикасы" : "Цифрлық қолжетімділікті бағалаудың толық хронологиялық тізілімі."}
+              {siteIdFilter ? "Compliance dynamics according to VaMoLà telemetry standard" : "Central chronicle monitoring all digital accessibility evaluations."}
             </p>
           </div>
         </div>
@@ -159,17 +156,17 @@ export default function AuditList() {
             <button
               onClick={handleExportJSON}
               className="flex items-center justify-center gap-3 px-6 py-4 bg-[#1F2641]/50 hover:bg-[#2D3558] border border-[#2D3558] rounded-2xl text-sm text-white font-bold transition-all backdrop-blur-md shadow-lg hover:shadow-indigo-500/10 hover:border-indigo-500/50 cursor-pointer"
-              title="Аудиттерді JSON форматында жүктеу"
+              title="Download audits as JSON"
             >
               <Download className="w-5 h-5 text-indigo-400" />
-              <span>JSON жүктеу</span>
+              <span>Export JSON</span>
             </button>
             <div className="relative group w-full sm:w-80">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Ұйым бойынша сүзу..."
+                placeholder="Filter by organization..."
                 className="w-full pl-12 pr-6 py-4 bg-[#1F2641]/50 border border-[#2D3558] rounded-2xl text-sm text-white placeholder-[#4F5A85] focus:ring-2 focus:ring-indigo-500 outline-none transition-all backdrop-blur-md"
               />
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4F5A85] group-focus-within:text-indigo-400 transition-colors" />
@@ -183,13 +180,13 @@ export default function AuditList() {
           <div className="w-20 h-20 bg-[#161B31] rounded-3xl flex items-center justify-center mx-auto mb-8 border border-[#2D3558]">
             <BarChart3 className="w-8 h-8 text-[#4F5A85]" />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-4">Аудиттер табылмады</h3>
-          <p className="text-[#707AA1] max-w-sm mx-auto mb-10 font-medium">Бұл критерий бойынша бағалау тарихы табылмады.</p>
+          <h3 className="text-2xl font-bold text-white mb-4">No Audits Found</h3>
+          <p className="text-[#707AA1] max-w-sm mx-auto mb-10 font-medium">No historical assessments exist matching current filter criteria.</p>
           <button 
             onClick={() => navigate('/audit/new')}
             className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/30"
           >
-            Алғашқы сканерлеуді бастау
+            Initiate First Audit
           </button>
         </div>
       ) : (
@@ -218,8 +215,8 @@ export default function AuditList() {
                         <span className="text-xl">{audit.internalScore}%</span>
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{site?.name || "Нысаналы жүйе"}</h3>
-                        <p className="text-[10px] text-[#4F5A85] uppercase tracking-[0.2em] font-black mt-1">{site?.category || "Стандартты"}</p>
+                        <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{site?.name || "Target System"}</h3>
+                        <p className="text-[10px] text-[#4F5A85] uppercase tracking-[0.2em] font-black mt-1">{site?.category || "Standard"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -229,13 +226,13 @@ export default function AuditList() {
                             onClick={(e) => { e.stopPropagation(); handleDeleteAudit(audit.id); }}
                             className="px-3 py-1.5 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-rose-500 transition-colors shadow-lg shadow-rose-600/20"
                           >
-                            Иә
+                            Yes
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
                             className="px-3 py-1.5 bg-[#1F2641] text-[#A6AFC9] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#2D3558]"
                           >
-                            Жоқ
+                            No
                           </button>
                         </div>
                       ) : (
@@ -251,26 +248,26 @@ export default function AuditList() {
 
                   <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="bg-[#111422] p-4 rounded-2xl border border-[#2D3558] group-hover:border-indigo-500/30 transition-colors">
-                      <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">ITA Индексі</p>
+                      <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">ITA Index</p>
                       <p className="text-2xl font-black text-indigo-400">{audit.itaIndex || 0}</p>
                     </div>
                     <div className="bg-[#111422] p-4 rounded-2xl border border-[#2D3558] group-hover:border-indigo-500/30 transition-colors">
-                      <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Жетілу деңгейі</p>
+                      <p className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-2">Maturity Level</p>
                       <p className="text-sm font-bold text-white line-clamp-1">{audit.maturityLevel}</p>
                     </div>
                   </div>
 
                   <div className="flex gap-6 mb-8 px-1">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">Axe Ядросы</span>
+                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">Axe Core</span>
                       <span className="text-lg font-black text-white">{audit.axeScore}%</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">ЖИ Интеллект</span>
+                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">AI Intelligence</span>
                       <span className="text-lg font-black text-indigo-400">{audit.aiScore}%</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">Контраст</span>
+                      <span className="text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.2em] mb-1">Contrast</span>
                       <span className="text-lg font-black text-amber-400">{audit.contrastScore}%</span>
                     </div>
                   </div>
@@ -278,14 +275,14 @@ export default function AuditList() {
                   <div className="flex items-center justify-between text-[10px] font-black text-[#4F5A85] uppercase tracking-[0.3em] pt-6 border-t border-[#22293F]">
                     <div className="flex items-center gap-2">
                        <Calendar className="w-4 h-4 text-indigo-500" />
-                       {format(new Date(audit.date), "d MMM yyyy", { locale: ru })}
+                       {format(new Date(audit.date), "d MMM yyyy", { locale: enUS })}
                     </div>
                     <div className="flex items-center gap-2 text-indigo-400 group-hover:text-white transition-colors">
-                      Есеп <ExternalLink className="w-3 h-3" />
+                      Full Report <ExternalLink className="w-3 h-3" />
                     </div>
                   </div>
                 </motion.div>
-              );
+               );
             })}
           </AnimatePresence>
         </div>

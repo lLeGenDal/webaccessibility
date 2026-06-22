@@ -192,6 +192,111 @@ const aiGen = {
   }
 };
 
+// Groq API Integration helper
+async function callGroq(prompt: string, responseFormatJson: boolean = false): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("No GROQ_API_KEY env variable set.");
+  }
+
+  // Llama 3.3 70B is extremely capable and standard for fast, high-quality reasoning tasks.
+  const model = "llama-3.3-70b-versatile";
+  const requestBody: any = {
+    model: model,
+    messages: [
+      {
+        role: "system",
+        content: "You are a professional web accessibility auditor specializing in WCAG 2.2 and Kazakhstan standards. Always return text in Russian or Kazakh as specified by the user's prompt. If JSON format is expected, you must reply with a valid JSON object ONLY. Do not wrap JSON in Markdown backticks. Ensure property names and types match the requested structure precisely."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    temperature: 0.1,
+  };
+
+  if (responseFormatJson) {
+    requestBody.response_format = { type: "json_object" };
+  }
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq API returned status ${response.status}: ${errorText}`);
+  }
+
+  const data: any = await response.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  return content.trim();
+}
+
+function cleanJsonString(str: string): string {
+  let cleaned = str.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```json\s*/i, "");
+    cleaned = cleaned.replace(/^```\s*/, "");
+    cleaned = cleaned.replace(/```$/, "");
+  }
+  return cleaned.trim();
+}
+
+// Unified AI Router function supporting real-time header-based selection or auto fallbacks.
+async function runAIGenerate(options: {
+  prompt: string;
+  responseMimeType?: string;
+  responseSchema?: any;
+  req: express.Request;
+}): Promise<string> {
+  const headerProvider = options.req.headers["x-ai-provider"] as string;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+
+  // Resolve which provider to execute
+  let provider = "gemini";
+  if (headerProvider === "groq" && groqApiKey) {
+    provider = "groq";
+  } else if (!geminiApiKey && groqApiKey) {
+    provider = "groq";
+  } else if (headerProvider === "gemini" && geminiApiKey) {
+    provider = "gemini";
+  } else if (groqApiKey) {
+    provider = "groq";
+  }
+
+  if (provider === "groq") {
+    const isJson = options.responseMimeType === "application/json";
+    return await callGroq(options.prompt, isJson);
+  } else {
+    const client = getGeminiClient();
+    if (!client) {
+      throw new Error("No Gemini client available.");
+    }
+    const reqOptions: any = {
+      model: "gemini-3.5-flash",
+      contents: [{ role: "user", parts: [{ text: options.prompt }] }],
+    };
+    if (options.responseMimeType === "application/json") {
+      reqOptions.config = {
+        responseMimeType: "application/json"
+      };
+      if (options.responseSchema) {
+        reqOptions.config.responseSchema = options.responseSchema;
+      }
+    }
+    const response = await client.models.generateContent(reqOptions);
+    return (response.text || "").trim();
+  }
+}
+
 // Elegant offline warning logger
 const logGeminiWarning = (context: string, error: any) => {
   const errMsg = error?.message || (typeof error === "object" ? JSON.stringify(error) : String(error));
@@ -724,11 +829,11 @@ apiRouter.post("/gemini/pre-audit", async (req, res) => {
       HTML Fragment:
       ${sample}
     `;
-    const result = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    res.json({ result: (result.text || "").trim() });
+    res.json({ result: text });
   } catch (error) {
     logGeminiWarning("pre-audit", error);
     res.json({ result: getFallback() });
@@ -787,50 +892,48 @@ apiRouter.post("/gemini/semantic-audit", async (req, res) => {
       Include a 'strategicReview' field (string) with a 2-paragraph deep analysis of the overall accessibility architecture of this site.
     `;
 
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            aiScore: { type: Type.NUMBER },
-            semanticAltQuality: { type: Type.NUMBER },
-            labelClarity: { type: Type.NUMBER },
-            navigationLogic: { type: Type.NUMBER },
-            recommendations: {
+    const text = await runAIGenerate({
+      prompt,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          aiScore: { type: Type.NUMBER },
+          semanticAltQuality: { type: Type.NUMBER },
+          labelClarity: { type: Type.NUMBER },
+          navigationLogic: { type: Type.NUMBER },
+          recommendations: {
+            type: Type.OBJECT,
+            properties: {
+              kz: { type: Type.STRING },
+              ru: { type: Type.STRING }
+            },
+            required: ["kz", "ru"]
+          },
+          summary: { type: Type.STRING },
+          strategicReview: { type: Type.STRING },
+          issues: {
+            type: Type.ARRAY,
+            items: {
               type: Type.OBJECT,
               properties: {
-                kz: { type: Type.STRING },
-                ru: { type: Type.STRING }
+                description: { type: Type.STRING },
+                criterion: { type: Type.STRING },
+                wcagLevel: { type: Type.STRING },
+                severity: { type: Type.STRING },
+                recommendation: { type: Type.STRING },
+                engine: { type: Type.STRING }
               },
-              required: ["kz", "ru"]
-            },
-            summary: { type: Type.STRING },
-            strategicReview: { type: Type.STRING },
-            issues: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  description: { type: Type.STRING },
-                  criterion: { type: Type.STRING },
-                  wcagLevel: { type: Type.STRING },
-                  severity: { type: Type.STRING },
-                  recommendation: { type: Type.STRING },
-                  engine: { type: Type.STRING }
-                },
-                required: ["description", "criterion", "wcagLevel", "severity", "recommendation", "engine"]
-              }
+              required: ["description", "criterion", "wcagLevel", "severity", "recommendation", "engine"]
             }
-          },
-          required: ["aiScore", "semanticAltQuality", "labelClarity", "navigationLogic", "recommendations", "summary", "strategicReview", "issues"]
-        }
-      }
+          }
+        },
+        required: ["aiScore", "semanticAltQuality", "labelClarity", "navigationLogic", "recommendations", "summary", "strategicReview", "issues"]
+      },
+      req,
     });
 
-    res.json(JSON.parse(response.text || "{}"));
+    res.json(JSON.parse(cleanJsonString(text)));
   } catch (error) {
     logGeminiWarning("semantic-audit", error);
     res.json(getFallback());
@@ -861,11 +964,11 @@ apiRouter.post("/gemini/final-synthesis", async (req, res) => {
       
       Language: Professional Russian.
     `;
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    res.json({ result: (response.text || "").trim() });
+    res.json({ result: text });
   } catch (error) {
     logGeminiWarning("final-synthesis", error);
     res.json({ result: getFallback() });
@@ -891,11 +994,11 @@ apiRouter.post("/gemini/suggest-url", async (req, res) => {
       If absolutely unknown, return "null".
       Reply ONLY with the URL string.
     `;
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    const url = (response.text || "").trim();
+    const url = text.trim();
     if (url.toLowerCase() === "null" || !url.startsWith("http")) {
       return res.json({ url: fallbackSuggestUrl(orgName) });
     }
@@ -930,11 +1033,11 @@ apiRouter.post("/gemini/suggest-region", async (req, res) => {
 
       Return ONLY the name from the list. If unknown, return "null".
     `;
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    const region = (response.text || "").trim();
+    const region = text.trim();
     if (region.toLowerCase() === "null") {
       return res.json({ region: fallbackSuggestRegion(orgName) });
     }
@@ -965,11 +1068,11 @@ apiRouter.post("/gemini/suggest-name", async (req, res) => {
       If it is already a full name or you are not sure, return the original input.
       Reply ONLY with the full name string.
     `;
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    res.json({ fullName: (response.text || "").trim() });
+    res.json({ fullName: text.trim() });
   } catch (error) {
     logGeminiWarning("suggest-name", error);
     res.json({ fullName: fallbackSuggestName(orgName) });
@@ -1004,14 +1107,52 @@ apiRouter.post("/gemini/suggest-category", async (req, res) => {
 
       Return ONLY the category name. If unknown, return "Company" as default.
     `;
-    const response = await aiGen.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const text = await runAIGenerate({
+      prompt,
+      req,
     });
-    res.json({ category: (response.text || "").trim() });
+    res.json({ category: text.trim() });
   } catch (error) {
     logGeminiWarning("suggest-category", error);
     res.json({ category: fallbackSuggestCategory(orgName) });
+  }
+});
+
+apiRouter.get("/config/ai-status", (req, res) => {
+  const geminiSet = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "AIzaSyA6efsEJV1PwjkImXgVpAaV0n4vu4y67qE";
+  const groqSet = !!process.env.GROQ_API_KEY;
+  res.json({
+    gemini: {
+      available: geminiSet,
+      model: "gemini-3.5-flash",
+    },
+    groq: {
+      available: groqSet,
+      model: "llama-3.3-70b-versatile",
+    }
+  });
+});
+
+apiRouter.post("/config/test-ai", async (req, res) => {
+  const { provider } = req.body;
+  const activeProvider = provider || "gemini";
+  try {
+    if (activeProvider === "groq") {
+      const response = await callGroq("Reply with 'Groq (Llama 3.3 70B) is integrated successfully!' in Russian.");
+      return res.json({ success: true, result: response });
+    } else {
+      const client = getGeminiClient();
+      if (!client) {
+        throw new Error("Gemini client is not initialized. Please verify your GEMINI_API_KEY.");
+      }
+      const response = await client.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: [{ role: "user", parts: [{ text: "Reply with 'Gemini is integrated successfully!' in Russian." }] }]
+      });
+      return res.json({ success: true, result: (response.text || "").trim() });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
   }
 });
 

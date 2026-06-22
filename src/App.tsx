@@ -17,6 +17,7 @@ import AuditCompare from "./components/AuditCompare";
 import ManualReview from "./components/ManualReview";
 import AuditList from "./components/AuditList";
 import Methodology from "./components/Methodology";
+import SettingsPanel from "./components/SettingsPanel";
 
 // Auth
 import { authService } from "./services/authService";
@@ -183,6 +184,18 @@ const Sidebar = () => {
         {/* High-tech Language Selector */}
         <div className="flex bg-[#121626]/80 border border-[#232B45] p-1 rounded-2xl mb-8 gap-1 shadow-inner relative z-10">
           <button
+            onClick={() => setLanguage("en")}
+            className={cn(
+              "flex-1 text-[11px] py-1.5 rounded-xl font-extrabold tracking-wider transition-all duration-300",
+              language === "en" 
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
+                : "text-[#707AA1] hover:text-white hover:bg-[#1C233B]/50"
+            )}
+            aria-label="English language"
+          >
+            ENG
+          </button>
+          <button
             onClick={() => setLanguage("kk")}
             className={cn(
               "flex-1 text-[11px] py-1.5 rounded-xl font-extrabold tracking-wider transition-all duration-300",
@@ -192,7 +205,7 @@ const Sidebar = () => {
             )}
             aria-label="Қазақ тілі"
           >
-            ҚАЗ
+            KAZ
           </button>
           <button
             onClick={() => setLanguage("ru")}
@@ -204,7 +217,7 @@ const Sidebar = () => {
             )}
             aria-label="Русский язык"
           >
-            РУС
+            RUS
           </button>
         </div>
 
@@ -215,6 +228,7 @@ const Sidebar = () => {
           <NavItem to="/audit/new" icon={ClipboardCheck} label={t("nav.startAudit")} active={location.pathname === "/audit/new"} />
           <NavItem to="/compare" icon={GitCompare} label={t("nav.compare")} active={location.pathname === "/compare"} />
           <NavItem to="/methodology" icon={Info} label={t("nav.methodology")} active={location.pathname === "/methodology"} />
+          <NavItem to="/settings" icon={Settings} label={t("nav.settings")} active={location.pathname === "/settings"} />
         </nav>
       </div>
 
@@ -403,7 +417,7 @@ const MainContent = () => {
             <Route path="/audit/:auditId/manual" element={<ManualReview />} />
             <Route path="/compare" element={<AuditCompare />} />
             <Route path="/methodology" element={<Methodology />} />
-            <Route path="/settings" element={<div className="glass-card p-10 text-center text-[#707AA1] font-bold uppercase tracking-widest">Конфигурациялық модуль шифрланған</div>} />
+            <Route path="/settings" element={<SettingsPanel />} />
           </Routes>
         </div>
       </main>
